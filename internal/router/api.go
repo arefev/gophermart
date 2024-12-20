@@ -19,11 +19,16 @@ func API(log *zap.Logger) *chi.Mux {
 			r.Post("/register", userHandler.Register)
 			r.Post("/login", userHandler.Login)
 
+			// Сохранение номера заказа
 			r.Post("/orders", orderHandler.Save)
+			// Получение списка загруженных заказов
 			r.Get("/orders", orderHandler.List)
 
+			// Получение текущего баланса
 			r.Get("/balance", balanceHandler.Get)
+			// Запрос на списание средств
 			r.Post("/balance/withdraw", balanceHandler.Withdraw)
+			// Получение информации о выводе средств
 			r.Get("/withdrawals", balanceHandler.Withdrawals)
 		})
 	})
