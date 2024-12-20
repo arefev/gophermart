@@ -1,0 +1,17 @@
+services:
+
+  gophermart-db:
+    image: postgres:17.2
+    container_name: gophermart_db
+    restart: always
+    ports:
+      - ${DB_LOCAL_PORT}:${DB_PORT}
+    volumes:
+      - gophermart-db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+
+volumes:
+  gophermart-db-data:
