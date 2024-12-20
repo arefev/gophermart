@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	address         string = "localhost:8080"
-	logLevel        string = "info"
-	databaseDSN     string = ""
+	address     string = "localhost:8080"
+	logLevel    string = "info"
+	databaseDSN string = ""
 )
 
 type Config struct {
-	Address         string `env:"ADDRESS"`
-	LogLevel        string `env:"LOG_LEVEL"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
+	Address     string `env:"ADDRESS"`
+	LogLevel    string `env:"LOG_LEVEL"`
+	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
 func NewConfig(params []string) (Config, error) {
