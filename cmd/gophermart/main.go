@@ -34,5 +34,5 @@ func run() error {
 		zap.String("log level", config.LogLevel),
 	)
 
-	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(config.Address, router.API(zLog)))
+	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(config.Address, router.New(zLog)))
 }
