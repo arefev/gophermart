@@ -31,6 +31,6 @@ func api(log *zap.Logger) http.Handler {
 		// Получение информации о выводе средств
 		r.Get("/withdrawals", balanceHandler.Withdrawals)
 	})
-	
+
 	return r
 }

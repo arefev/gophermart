@@ -4,21 +4,32 @@ USER=CURRENT_UID=$$(id -u):0
 DOCKER_PROJECT_NAME=gophermart
 DATABASE_DSN="host=${DB_HOST} user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable"
 
-.PHONY: gofmt containers server server-run
-
+.PHONY: gofmt
 gofmt:
 	gofmt -s -w ./
 
+.PHONY: containers
 containers:
 	$(USER) docker-compose --project-name $(DOCKER_PROJECT_NAME) up -d
 
+.PHONY: server
 server: server-run
 
+.PHONY: server-run
 server-run: server-build
 	./cmd/gophermart/server -d=${DATABASE_DSN} -k="${SECRET_KEY}"
 
+.PHONY: server-build
 server-build:
 	go build -o ./cmd/gophermart/server ./cmd/gophermart/
+
+.PHONY: migrate
+migrate:
+	migrate -path ./db/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable up
+
+.PHONY: migrate-create
+migrate-create:
+	migrate create -ext sql -dir ./db/migrations $(name)
 
 .PHONY: golangci-lint-run
 golangci-lint-run: _golangci-lint-rm-unformatted-report
