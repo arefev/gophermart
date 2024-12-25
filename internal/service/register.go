@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserSaver interface {
@@ -58,7 +59,7 @@ func (r *register) Save(login string, password string) error {
 
 	password, err := r.encryptPassword(password)
 	if err != nil {
-		return fmt.Errorf("register save fail: encrypt password fail: %w", err)
+		return fmt.Errorf("register save fail: %w", err)
 	}
 
 	if err := r.user.Save(login, password); err != nil {
@@ -69,5 +70,10 @@ func (r *register) Save(login string, password string) error {
 }
 
 func (r *register) encryptPassword(password string) (string, error) {
-	return password, nil
+	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+        return "", fmt.Errorf("encrypt password fail: %w", err)
+    }
+
+	return string(passHash), nil
 }

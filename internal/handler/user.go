@@ -19,7 +19,7 @@ func NewUser(log *zap.Logger) *user {
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Register user handler called")
 
-	rep := repository.NewUser()
+	rep := repository.NewUser(u.log)
 	if err := service.NewRegister(rep, u.log).FromRequest(r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
