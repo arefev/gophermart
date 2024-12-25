@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -16,6 +18,12 @@ func NewUser(log *zap.Logger) *user {
 
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Register user handler called")
+
+	rep := repository.NewUser()
+	if err := service.NewRegister(rep, u.log).FromRequest(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func (u *user) Login(w http.ResponseWriter, r *http.Request) {

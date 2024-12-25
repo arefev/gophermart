@@ -17,15 +17,19 @@ server: server-run
 
 .PHONY: server-run
 server-run: server-build
-	./cmd/gophermart/server -d=${DATABASE_DSN} -k="${SECRET_KEY}"
+	./cmd/gophermart/server -d=${DATABASE_DSN} -a="localhost:8081" -l="debug"
 
 .PHONY: server-build
 server-build:
 	go build -o ./cmd/gophermart/server ./cmd/gophermart/
 
-.PHONY: migrate
-migrate:
+.PHONY: migrate-up
+migrate-up:
 	migrate -path ./db/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable up
+
+.PHONY: migrate-down
+migrate-down:
+	migrate -path ./db/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable down
 
 .PHONY: migrate-create
 migrate-create:

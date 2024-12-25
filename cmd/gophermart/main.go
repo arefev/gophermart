@@ -18,7 +18,7 @@ func main() {
 }
 
 func run() error {
-	config, err := NewConfig(os.Args[0:1])
+	config, err := NewConfig(os.Args[1:])
 	if err != nil {
 		return fmt.Errorf("run: init config fail: %w", err)
 	}
