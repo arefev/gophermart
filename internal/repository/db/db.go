@@ -7,17 +7,27 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
-var connection *sqlx.DB
+type db struct {
+	db  *sqlx.DB
+	log *zap.Logger
+}
 
-func Connect(dsn string) error {
-	db, err := sqlx.Connect("pgx", dsn)
+var connection *db
+
+func Connect(dsn string, log *zap.Logger) error {
+	dbConn, err := sqlx.Connect("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("db connect fail: %w", err)
 	}
 
-	connection = db
+	connection = &db{
+		db:  dbConn,
+		log: log,
+	}
+
 	return nil
 }
 
@@ -29,7 +39,7 @@ func Close() error {
 }
 
 func Connection() *sqlx.DB {
-	return connection
+	return connection.db
 }
 
 func Transaction(action func(tx *sqlx.Tx) error) error {
@@ -41,14 +51,14 @@ func Transaction(action func(tx *sqlx.Tx) error) error {
 	defer func() {
 		if err := tx.Rollback(); err != nil {
 			if !errors.Is(err, sql.ErrTxDone) {
-				
+				connection.log.Error("db transaction rollback fail", zap.Error(err))
 			}
 		}
 	}()
 
 	if err := action(tx); err != nil {
-        return fmt.Errorf("db transaction fail: %w", err)
-    }
+		return fmt.Errorf("db transaction fail: %w", err)
+	}
 
 	return tx.Commit()
 }

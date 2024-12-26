@@ -29,7 +29,7 @@ func run() error {
 		return fmt.Errorf("run: init logger fail: %w", err)
 	}
 
-	if err := db.Connect(config.DatabaseDSN); err != nil {
+	if err := db.Connect(config.DatabaseDSN, zLog); err != nil {
 		return fmt.Errorf("run: db connect fail: %w", err)
 	}
 

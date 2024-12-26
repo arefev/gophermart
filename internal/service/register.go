@@ -57,23 +57,23 @@ func (r *register) FromRequest(req *http.Request) error {
 func (r *register) Create(login string, password string) error {
 	err := db.Transaction(func(tx *sqlx.Tx) error {
 		if r.user.Exists(tx, login) {
-			return fmt.Errorf("register create fail: user already exists")
+			return fmt.Errorf("user already exists")
 		}
 	
 		password, err := r.encryptPassword(password)
 		if err != nil {
-			return fmt.Errorf("register create fail: %w", err)
+			return fmt.Errorf("encrypt password fail: %w", err)
 		}
 	
 		if err := r.user.Create(tx, login, password); err != nil {
-			return fmt.Errorf("register create fail: %w", err)
+			return fmt.Errorf("create user fail: %w", err)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-        return fmt.Errorf("register create fail: %w", err)
+        return fmt.Errorf("register create transaction fail: %w", err)
     }
 
 	return nil
