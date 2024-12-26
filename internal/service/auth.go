@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,12 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrAuthUserNotFound = errors.New("user not found")
+    ErrAuthJsonDecodeFail = errors.New("json decode fail")
+    ErrAuthValidateFail = errors.New("validate fail")
 )
 
 type UserFinder interface {
@@ -39,12 +46,12 @@ func (a *auth) FromRequest(req *http.Request) error {
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&rUser); err != nil {
-		return fmt.Errorf("auth from request json decode fail: %w", err)
+		return fmt.Errorf("auth from request %w: %w", ErrAuthJsonDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(rUser); err != nil {
-		return fmt.Errorf("auth from request validate fail: %w", err)
+		return fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
 	}
 
 	user, err := a.getUser(rUser.Login)
@@ -53,7 +60,7 @@ func (a *auth) FromRequest(req *http.Request) error {
 	}
 
 	if !a.checkPassword(user, rUser.Password) {
-		return fmt.Errorf("auth from request wrong pair login / password")
+		return ErrAuthUserNotFound
 	}
 
 	return nil
@@ -67,7 +74,7 @@ func (a *auth) getUser(login string) (*model.User, error) {
 		user, err = a.user.FindByLogin(tx, login)
 
 		if err != nil || user == nil {
-			return fmt.Errorf("user not found")
+			return ErrAuthUserNotFound
 		}
 
 		return nil

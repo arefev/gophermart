@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/repository"
@@ -20,8 +21,17 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Register user handler called")
 
 	rep := repository.NewUser(u.log)
-	if err := service.NewRegister(rep, u.log).FromRequest(r); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := service.NewRegister(rep, u.log).FromRequest(r)
+
+	switch {
+	case errors.Is(err, service.ErrRegisterUserExists):
+		w.WriteHeader(http.StatusConflict)
+		return
+	case errors.Is(err, service.ErrRegisterJsonDecodeFail), errors.Is(err, service.ErrRegisterValidateFail):
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	case err != nil:
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
@@ -30,8 +40,17 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Login user handler called")
 
 	rep := repository.NewUser(u.log)
-	if err := service.NewAuth(rep, u.log).FromRequest(r); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := service.NewAuth(rep, u.log).FromRequest(r)
+
+	switch {
+	case errors.Is(err, service.ErrAuthUserNotFound):
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case errors.Is(err, service.ErrAuthJsonDecodeFail), errors.Is(err, service.ErrAuthValidateFail):
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	case err != nil:
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }

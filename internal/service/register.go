@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -10,6 +11,12 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrRegisterUserExists = errors.New("user already exists")
+	ErrRegisterJsonDecodeFail = errors.New("json decode fail")
+	ErrRegisterValidateFail = errors.New("validate fail")
 )
 
 type UserCreator interface {
@@ -39,12 +46,12 @@ func (r *register) FromRequest(req *http.Request) error {
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&user); err != nil {
-		return fmt.Errorf("register from request json decode fail: %w", err)
+		return fmt.Errorf("register from request %w: %w", ErrRegisterJsonDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(user); err != nil {
-		return fmt.Errorf("register from request validate fail: %w", err)
+		return fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
 	}
 
 	if err := r.Create(user.Login, user.Password); err != nil {
@@ -57,7 +64,7 @@ func (r *register) FromRequest(req *http.Request) error {
 func (r *register) Create(login string, password string) error {
 	err := db.Transaction(func(tx *sqlx.Tx) error {
 		if r.user.Exists(tx, login) {
-			return fmt.Errorf("user already exists")
+			return ErrRegisterUserExists
 		}
 
 		password, err := r.encryptPassword(password)
