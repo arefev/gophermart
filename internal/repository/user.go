@@ -29,7 +29,7 @@ func (u *User) Exists(tx *sqlx.Tx, login string) bool {
 	if err != nil {
 		u.log.Error("user exists fail", zap.Error(err))
 	}
-	
+
 	return user != nil
 }
 
@@ -38,7 +38,7 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, error) {
 	defer cancel()
 
 	user := model.User{}
-	query := "SELECT id, login, created_at, updated_at FROM users WHERE login = :login"
+	query := "SELECT id, login, password, created_at, updated_at FROM users WHERE login = :login"
 
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {

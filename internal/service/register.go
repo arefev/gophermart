@@ -59,12 +59,12 @@ func (r *register) Create(login string, password string) error {
 		if r.user.Exists(tx, login) {
 			return fmt.Errorf("user already exists")
 		}
-	
+
 		password, err := r.encryptPassword(password)
 		if err != nil {
 			return fmt.Errorf("encrypt password fail: %w", err)
 		}
-	
+
 		if err := r.user.Create(tx, login, password); err != nil {
 			return fmt.Errorf("create user fail: %w", err)
 		}
@@ -73,8 +73,8 @@ func (r *register) Create(login string, password string) error {
 	})
 
 	if err != nil {
-        return fmt.Errorf("register create transaction fail: %w", err)
-    }
+		return fmt.Errorf("register create transaction fail: %w", err)
+	}
 
 	return nil
 }
