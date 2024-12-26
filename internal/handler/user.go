@@ -31,6 +31,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:
+		u.log.Error("Register user handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -50,6 +51,7 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:
+		u.log.Error("Login user handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
