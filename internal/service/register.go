@@ -72,8 +72,8 @@ func (r *register) Create(login string, password string) error {
 func (r *register) encryptPassword(password string) (string, error) {
 	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-        return "", fmt.Errorf("encrypt password fail: %w", err)
-    }
+		return "", fmt.Errorf("encrypt password fail: %w", err)
+	}
 
 	return string(passHash), nil
 }

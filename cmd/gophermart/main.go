@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/arefev/gophermart/internal/logger"
+	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
 	"go.uber.org/zap"
 )
@@ -27,6 +28,16 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("run: init logger fail: %w", err)
 	}
+
+	if err := db.Connect(config.DatabaseDSN); err != nil {
+		return fmt.Errorf("run: db connect fail: %w", err)
+	}
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			zLog.Error("db close failed: %w", zap.Error(err))
+		}
+	}()
 
 	zLog.Info(
 		"Server starting...",

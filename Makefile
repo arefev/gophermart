@@ -2,7 +2,7 @@ include .env
 
 USER=CURRENT_UID=$$(id -u):0
 DOCKER_PROJECT_NAME=gophermart
-DATABASE_DSN="host=${DB_HOST} user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable"
+DATABASE_DSN="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable"
 
 .PHONY: gofmt
 gofmt:
@@ -25,11 +25,11 @@ server-build:
 
 .PHONY: migrate-up
 migrate-up:
-	migrate -path ./db/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable up
+	migrate -path ./db/migrations -database ${DATABASE_DSN} up
 
 .PHONY: migrate-down
 migrate-down:
-	migrate -path ./db/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable down
+	migrate -path ./db/migrations -database ${DATABASE_DSN} down
 
 .PHONY: migrate-create
 migrate-create:

@@ -1,14 +1,20 @@
 package repository
 
-import "go.uber.org/zap"
+import (
+	"github.com/arefev/gophermart/internal/repository/db"
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
+)
 
 type User struct {
 	log *zap.Logger
+	db  *sqlx.DB
 }
 
 func NewUser(log *zap.Logger) *User {
 	return &User{
 		log: log,
+		db:  db.Connection(),
 	}
 }
 
