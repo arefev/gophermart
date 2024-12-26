@@ -10,22 +10,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserSaver interface {
+type UserCreator interface {
 	Exists() bool
-	Save(login string, password string) error
+	Create(login string, password string) error
 }
 
-type UserRequest struct {
+type UserCreateRequest struct {
 	Login    string `json:"login" validate:"required,lte=10,alpha"`
 	Password string `json:"password" validate:"required,lte=30"`
 }
 
 type register struct {
 	log  *zap.Logger
-	user UserSaver
+	user UserCreator
 }
 
-func NewRegister(user UserSaver, log *zap.Logger) *register {
+func NewRegister(user UserCreator, log *zap.Logger) *register {
 	return &register{
 		log:  log,
 		user: user,
@@ -33,7 +33,7 @@ func NewRegister(user UserSaver, log *zap.Logger) *register {
 }
 
 func (r *register) FromRequest(req *http.Request) error {
-	user := UserRequest{}
+	user := UserCreateRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&user); err != nil {
@@ -45,25 +45,25 @@ func (r *register) FromRequest(req *http.Request) error {
 		return fmt.Errorf("register from request validate fail: %w", err)
 	}
 
-	if err := r.Save(user.Login, user.Password); err != nil {
+	if err := r.Create(user.Login, user.Password); err != nil {
 		return fmt.Errorf("register from request save fail: %w", err)
 	}
 
 	return nil
 }
 
-func (r *register) Save(login string, password string) error {
+func (r *register) Create(login string, password string) error {
 	if r.user.Exists() {
-		return fmt.Errorf("register save fail: user already exists")
+		return fmt.Errorf("register create fail: user already exists")
 	}
 
 	password, err := r.encryptPassword(password)
 	if err != nil {
-		return fmt.Errorf("register save fail: %w", err)
+		return fmt.Errorf("register create fail: %w", err)
 	}
 
-	if err := r.user.Save(login, password); err != nil {
-		return fmt.Errorf("register save fail: %w", err)
+	if err := r.user.Create(login, password); err != nil {
+		return fmt.Errorf("register create fail: %w", err)
 	}
 
 	return nil
