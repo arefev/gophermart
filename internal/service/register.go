@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserCreator interface {
-	Exists() bool
-	Create(login string, password string) error
+	Exists(tx *sqlx.Tx, login string) bool
+	Create(tx *sqlx.Tx, login string, password string) error
 }
 
 type UserCreateRequest struct {
-	Login    string `json:"login" validate:"required,lte=10,alpha"`
+	Login    string `json:"login" validate:"required,gte=3,lte=10,alpha"`
 	Password string `json:"password" validate:"required,lte=30"`
 }
 
@@ -53,18 +55,26 @@ func (r *register) FromRequest(req *http.Request) error {
 }
 
 func (r *register) Create(login string, password string) error {
-	if r.user.Exists() {
-		return fmt.Errorf("register create fail: user already exists")
-	}
+	err := db.Transaction(func(tx *sqlx.Tx) error {
+		if r.user.Exists(tx, login) {
+			return fmt.Errorf("register create fail: user already exists")
+		}
+	
+		password, err := r.encryptPassword(password)
+		if err != nil {
+			return fmt.Errorf("register create fail: %w", err)
+		}
+	
+		if err := r.user.Create(tx, login, password); err != nil {
+			return fmt.Errorf("register create fail: %w", err)
+		}
 
-	password, err := r.encryptPassword(password)
+		return nil
+	})
+
 	if err != nil {
-		return fmt.Errorf("register create fail: %w", err)
-	}
-
-	if err := r.user.Create(login, password); err != nil {
-		return fmt.Errorf("register create fail: %w", err)
-	}
+        return fmt.Errorf("register create fail: %w", err)
+    }
 
 	return nil
 }
@@ -72,7 +82,7 @@ func (r *register) Create(login string, password string) error {
 func (r *register) encryptPassword(password string) (string, error) {
 	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("encrypt password fail: %w", err)
+		return "", fmt.Errorf("register encrypt password fail: %w", err)
 	}
 
 	return string(passHash), nil

@@ -1,28 +1,95 @@
 package repository
 
 import (
-	"github.com/arefev/gophermart/internal/repository/db"
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/arefev/gophermart/internal/model"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
+const timeCancel = 15 * time.Second
+
 type User struct {
 	log *zap.Logger
-	db  *sqlx.DB
 }
 
 func NewUser(log *zap.Logger) *User {
 	return &User{
 		log: log,
-		db:  db.Connection(),
 	}
 }
 
-func (u *User) Exists() bool {
-	return false
+func (u *User) Exists(tx *sqlx.Tx, login string) bool {
+	user, err := u.FindByLogin(tx, login)
+	if err != nil {
+		u.log.Error("user exists fail", zap.Error(err))
+	}
+	
+	return user != nil
 }
 
-func (u *User) Create(login string, password string) error {
-	u.log.Sugar().Infof("login: %s, password: %s", login, password)
+func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	user := model.User{}
+	query := "SELECT id, login, created_at, updated_at FROM users WHERE login = :login"
+
+	stmt, err := tx.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("user find fail: %w", err)
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			u.log.Warn("user find fail", zap.Error(err))
+		}
+	}()
+
+	arg := map[string]interface{}{"login": login}
+	if err := stmt.GetContext(ctx, &user, arg); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("user find fail: %w", err)
+		}
+
+		return nil, nil
+	}
+
+	return &user, nil
+}
+
+func (u *User) Create(tx *sqlx.Tx, login string, password string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "INSERT INTO users(login, password) VALUES(:login, :password)"
+	stmt, err := tx.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("user create fail: %w", err)
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			u.log.Warn("user create fail", zap.Error(err))
+		}
+	}()
+
+	_, err = stmt.ExecContext(
+		ctx,
+		map[string]interface{}{
+			"login":    login,
+			"password": password,
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("user create fail: %w", err)
+	}
+
 	return nil
 }

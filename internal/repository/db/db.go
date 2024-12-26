@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -28,4 +30,25 @@ func Close() error {
 
 func Connection() *sqlx.DB {
 	return connection
+}
+
+func Transaction(action func(tx *sqlx.Tx) error) error {
+	tx, err := Connection().Beginx()
+	if err != nil {
+		return fmt.Errorf("db transaction failed: %w", err)
+	}
+
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			if !errors.Is(err, sql.ErrTxDone) {
+				
+			}
+		}
+	}()
+
+	if err := action(tx); err != nil {
+        return fmt.Errorf("db transaction fail: %w", err)
+    }
+
+	return tx.Commit()
 }
