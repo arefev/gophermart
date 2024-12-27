@@ -41,7 +41,7 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Login user handler called")
 
 	rep := repository.NewUser(u.log)
-	err := service.NewAuth(rep, u.log).FromRequest(r)
+	token, err := service.NewAuth(rep, u.log).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrAuthUserNotFound):
@@ -55,4 +55,6 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Authorization", "Bearer " + token)
 }

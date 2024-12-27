@@ -5,19 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrAuthUserNotFound = errors.New("user not found")
-    ErrAuthJsonDecodeFail = errors.New("json decode fail")
-    ErrAuthValidateFail = errors.New("validate fail")
+	ErrAuthUserNotFound   = errors.New("user not found")
+	ErrAuthJsonDecodeFail = errors.New("json decode fail")
+	ErrAuthValidateFail   = errors.New("validate fail")
 )
 
 type UserFinder interface {
@@ -41,29 +43,34 @@ func NewAuth(user UserFinder, log *zap.Logger) *auth {
 	}
 }
 
-func (a *auth) FromRequest(req *http.Request) error {
+func (a *auth) FromRequest(req *http.Request) (string, error) {
 	rUser := UserCreateRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&rUser); err != nil {
-		return fmt.Errorf("auth from request %w: %w", ErrAuthJsonDecodeFail, err)
+		return "", fmt.Errorf("auth from request %w: %w", ErrAuthJsonDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(rUser); err != nil {
-		return fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
+		return "", fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
 	}
 
 	user, err := a.getUser(rUser.Login)
 	if err != nil {
-		return fmt.Errorf("auth from request get user fail: %w", err)
+		return "", fmt.Errorf("auth from request get user fail: %w", err)
 	}
 
 	if !a.checkPassword(user, rUser.Password) {
-		return ErrAuthUserNotFound
+		return "", ErrAuthUserNotFound
 	}
 
-	return nil
+	token, err := a.GenerateToken(user)
+	if err!= nil {
+        return "", fmt.Errorf("auth from request generate token fail: %w", err)
+    }
+
+	return token, nil
 }
 
 func (a *auth) getUser(login string) (*model.User, error) {
@@ -90,4 +97,19 @@ func (a *auth) getUser(login string) (*model.User, error) {
 func (a *auth) checkPassword(user *model.User, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	return err == nil
+}
+
+func (a *auth) GenerateToken(user *model.User) (string, error) {
+	duration := time.Hour * 1
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"login": user.Login,
+		"exp":   time.Now().Add(duration).Unix(),
+	})
+
+	strToken, err := token.SignedString([]byte("123"))
+	if err != nil {
+		return "", fmt.Errorf("generate token fail: %w", err)
+	}
+
+	return strToken, nil
 }
