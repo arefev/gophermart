@@ -3,15 +3,16 @@ package router
 import (
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/handler"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-func api(log *zap.Logger) http.Handler {
+func api(log *zap.Logger, conf *config.Config) http.Handler {
 	r := chi.NewRouter()
 
-	userHandler := handler.NewUser(log)
+	userHandler := handler.NewUser(log, conf)
 	orderHandler := handler.NewOrder(log)
 	balanceHandler := handler.NewBalance(log)
 

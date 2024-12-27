@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
@@ -34,12 +35,14 @@ type UserAuthRequest struct {
 type auth struct {
 	log  *zap.Logger
 	user UserFinder
+	conf *config.Config
 }
 
-func NewAuth(user UserFinder, log *zap.Logger) *auth {
+func NewAuth(user UserFinder, log *zap.Logger, conf *config.Config) *auth {
 	return &auth{
 		user: user,
 		log:  log,
+		conf: conf,
 	}
 }
 
@@ -100,13 +103,13 @@ func (a *auth) checkPassword(user *model.User, password string) bool {
 }
 
 func (a *auth) GenerateToken(user *model.User) (string, error) {
-	duration := time.Hour * 1
+	duration := time.Minute * time.Duration(a.conf.TokenDuration)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"login": user.Login,
 		"exp":   time.Now().Add(duration).Unix(),
 	})
 
-	strToken, err := token.SignedString([]byte("123"))
+	strToken, err := token.SignedString([]byte(a.conf.TokenSecret))
 	if err != nil {
 		return "", fmt.Errorf("generate token fail: %w", err)
 	}

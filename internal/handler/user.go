@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
@@ -11,10 +12,14 @@ import (
 
 type user struct {
 	log *zap.Logger
+	conf *config.Config
 }
 
-func NewUser(log *zap.Logger) *user {
-	return &user{log: log}
+func NewUser(log *zap.Logger, conf *config.Config) *user {
+	return &user{
+		log: log,
+		conf: conf,
+	}
 }
 
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +46,7 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Login user handler called")
 
 	rep := repository.NewUser(u.log)
-	token, err := service.NewAuth(rep, u.log).FromRequest(r)
+	token, err := service.NewAuth(rep, u.log, u.conf).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrAuthUserNotFound):

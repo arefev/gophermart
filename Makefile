@@ -17,7 +17,7 @@ server: server-run
 
 .PHONY: server-run
 server-run: server-build
-	./cmd/gophermart/server -d=${DATABASE_DSN} -a="localhost:8081" -l="debug"
+	./cmd/gophermart/server -d=${DATABASE_DSN} -a="${SERVER_ADDRESS}" -l="${LOG_LEVEL}" -s="${TOKEN_SECRET}"
 
 .PHONY: server-build
 server-build:

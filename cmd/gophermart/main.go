@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/logger"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
@@ -19,17 +20,17 @@ func main() {
 }
 
 func run() error {
-	config, err := NewConfig(os.Args[1:])
+	conf, err := config.NewConfig(os.Args[1:])
 	if err != nil {
 		return fmt.Errorf("run: init config fail: %w", err)
 	}
 
-	zLog, err := logger.Build(config.LogLevel)
+	zLog, err := logger.Build(conf.LogLevel)
 	if err != nil {
 		return fmt.Errorf("run: init logger fail: %w", err)
 	}
 
-	if err := db.Connect(config.DatabaseDSN, zLog); err != nil {
+	if err := db.Connect(conf.DatabaseDSN, zLog); err != nil {
 		return fmt.Errorf("run: db connect fail: %w", err)
 	}
 
@@ -41,9 +42,9 @@ func run() error {
 
 	zLog.Info(
 		"Server starting...",
-		zap.String("address", config.Address),
-		zap.String("log level", config.LogLevel),
+		zap.String("address", conf.Address),
+		zap.String("log level", conf.LogLevel),
 	)
 
-	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(config.Address, router.New(zLog)))
+	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(conf.Address, router.New(zLog, &conf)))
 }
