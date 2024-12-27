@@ -1,5 +1,6 @@
 include .env
 
+GOLANGCI_LINT_CACHE?=/tmp/gophermart-golangci-lint-cache
 USER=CURRENT_UID=$$(id -u):0
 DOCKER_PROJECT_NAME=gophermart
 DATABASE_DSN="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable"
@@ -48,7 +49,7 @@ _golangci-lint-run: _golangci-lint-reports-mkdir
     -v $(shell pwd):/app \
     -v $(GOLANGCI_LINT_CACHE):/root/.cache \
     -w /app \
-    golangci/golangci-lint:v1.57.2 \
+    golangci/golangci-lint:v1.62.0 \
         golangci-lint run \
             -c .golangci.yml \
 	> ./golangci-lint/report-unformatted.json
