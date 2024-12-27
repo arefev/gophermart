@@ -3,34 +3,42 @@ package router
 import (
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/handler"
+	"github.com/arefev/gophermart/internal/middleware"
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func api(log *zap.Logger, conf *config.Config) http.Handler {
+func api(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
-	userHandler := handler.NewUser(log, conf)
-	orderHandler := handler.NewOrder(log)
-	balanceHandler := handler.NewBalance(log)
+	userHandler := handler.NewUser(mw.Log, mw.Conf)
+	orderHandler := handler.NewOrder(mw.Log)
+	balanceHandler := handler.NewBalance(mw.Log)
 
 	r.Route("/user", func(r chi.Router) {
+		r.Use(chi_middleware.AllowContentType("application/json"))
+
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
 
-		// Сохранение номера заказа
-		r.Post("/orders", orderHandler.Save)
-		// Получение списка загруженных заказов
-		r.Get("/orders", orderHandler.List)
+		r.Group(func(r chi.Router) {
+			r.Use(mw.Authorized)
+			
+			// Сохранение номера заказа
+			r.Post("/orders", orderHandler.Save)
+			// Получение списка загруженных заказов
+			r.Get("/orders", orderHandler.List)
 
-		// Получение текущего баланса
-		r.Get("/balance", balanceHandler.Get)
-		// Запрос на списание средств
-		r.Post("/balance/withdraw", balanceHandler.Withdraw)
-		// Получение информации о выводе средств
-		r.Get("/withdrawals", balanceHandler.Withdrawals)
+			// Получение текущего баланса
+			r.Get("/balance", balanceHandler.Get)
+			// Запрос на списание средств
+			r.Post("/balance/withdraw", balanceHandler.Withdraw)
+			// Получение информации о выводе средств
+			r.Get("/withdrawals", balanceHandler.Withdrawals)
+		})
+
+		
 	})
 
 	return r
