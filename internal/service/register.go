@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/config"
-	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
@@ -45,31 +44,24 @@ func NewRegister(user UserCreator, log *zap.Logger, conf *config.Config) *regist
 	}
 }
 
-func (r *register) FromRequest(req *http.Request) (string, error) {
+func (r *register) FromRequest(req *http.Request) (*UserCreateRequest, error) {
 	user := UserCreateRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&user); err != nil {
-		return "", fmt.Errorf("register from request %w: %w", ErrRegisterJSONDecodeFail, err)
+		return nil, fmt.Errorf("register from request %w: %w", ErrRegisterJSONDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(user); err != nil {
-		return "", fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
+		return nil, fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
 	}
 
 	if err := r.Create(user.Login, user.Password); err != nil {
-		return "", fmt.Errorf("register from request save fail: %w", err)
+		return nil, fmt.Errorf("register from request save fail: %w", err)
 	}
 
-	rep := repository.NewUser(r.log)
-	auth := NewAuth(rep, r.log, r.conf)
-	token, err := auth.Authorize(user.Login, user.Password)
-	if err != nil {
-		return "", fmt.Errorf("register from request: authorize fail: %w", err)
-	}
-
-	return token, nil
+	return &user, nil
 }
 
 func (r *register) Create(login string, password string) error {

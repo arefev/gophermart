@@ -26,7 +26,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	u.log.Info("Register user handler called")
 
 	rep := repository.NewUser(u.log)
-	token, err := service.NewRegister(rep, u.log, u.conf).FromRequest(r)
+	user, err := service.NewRegister(rep, u.log, u.conf).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrRegisterUserExists):
@@ -38,6 +38,13 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		u.log.Error("Register user handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	token, err := service.NewAuth(rep, u.log, u.conf).Authorize(user.Login, user.Password)
+	if err != nil {
+		u.log.Error("Register user handler authorize", zap.Error(err))
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
