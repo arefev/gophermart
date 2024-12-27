@@ -5,45 +5,55 @@ USER=CURRENT_UID=$$(id -u):0
 DOCKER_PROJECT_NAME=gophermart
 DATABASE_DSN="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_LOCAL_PORT}/${DB_NAME}?sslmode=disable"
 
-.PHONY: gofmt
+
 gofmt:
 	gofmt -s -w ./
+.PHONY: gofmt
 
-.PHONY: containers
+
 containers:
 	$(USER) docker-compose --project-name $(DOCKER_PROJECT_NAME) up -d
+.PHONY: containers
 
-.PHONY: server
+
 server: server-run
+.PHONY: server
 
-.PHONY: server-run
+
 server-run: server-build
 	./cmd/gophermart/server -d=${DATABASE_DSN} -a="${SERVER_ADDRESS}" -l="${LOG_LEVEL}" -s="${TOKEN_SECRET}"
+.PHONY: server-run
 
-.PHONY: server-build
+
 server-build:
 	go build -o ./cmd/gophermart/server ./cmd/gophermart/
+.PHONY: server-build
 
-.PHONY: migrate-up
+
 migrate-up:
 	migrate -path ./db/migrations -database ${DATABASE_DSN} up
+.PHONY: migrate-up
 
-.PHONY: migrate-down
+
 migrate-down:
 	migrate -path ./db/migrations -database ${DATABASE_DSN} down
+.PHONY: migrate-down
 
-.PHONY: migrate-create
+
 migrate-create:
 	migrate create -ext sql -dir ./db/migrations $(name)
+.PHONY: migrate-create
 
-.PHONY: golangci-lint-run
+
 golangci-lint-run: _golangci-lint-rm-unformatted-report
+.PHONY: golangci-lint-run
 
-.PHONY: _golangci-lint-reports-mkdir
+
 _golangci-lint-reports-mkdir:
 	mkdir -p ./golangci-lint
+.PHONY: _golangci-lint-reports-mkdir
 
-.PHONY: _golangci-lint-run
+
 _golangci-lint-run: _golangci-lint-reports-mkdir
 	-docker run --rm \
     -v $(shell pwd):/app \
@@ -53,15 +63,19 @@ _golangci-lint-run: _golangci-lint-reports-mkdir
         golangci-lint run \
             -c .golangci.yml \
 	> ./golangci-lint/report-unformatted.json
+.PHONY: _golangci-lint-run
 
-.PHONY: _golangci-lint-format-report
+
 _golangci-lint-format-report: _golangci-lint-run
 	cat ./golangci-lint/report-unformatted.json | jq > ./golangci-lint/report.json
+.PHONY: _golangci-lint-format-report
 
-.PHONY: _golangci-lint-rm-unformatted-report
+
 _golangci-lint-rm-unformatted-report: _golangci-lint-format-report
 	rm ./golangci-lint/report-unformatted.json
+.PHONY: _golangci-lint-rm-unformatted-report
 
-.PHONY: golangci-lint-clean
+
 golangci-lint-clean:
 	sudo rm -rf ./golangci-lint 
+.PHONY: golangci-lint-clean
