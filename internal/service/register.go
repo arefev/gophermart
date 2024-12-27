@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	ErrRegisterUserExists = errors.New("user already exists")
+	ErrRegisterUserExists     = errors.New("user already exists")
 	ErrRegisterJsonDecodeFail = errors.New("json decode fail")
-	ErrRegisterValidateFail = errors.New("validate fail")
+	ErrRegisterValidateFail   = errors.New("validate fail")
 )
 
 type UserCreator interface {

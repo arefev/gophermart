@@ -69,9 +69,9 @@ func (a *auth) FromRequest(req *http.Request) (string, error) {
 	}
 
 	token, err := a.GenerateToken(user)
-	if err!= nil {
-        return "", fmt.Errorf("auth from request generate token fail: %w", err)
-    }
+	if err != nil {
+		return "", fmt.Errorf("auth from request generate token fail: %w", err)
+	}
 
 	return token, nil
 }

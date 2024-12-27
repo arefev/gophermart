@@ -11,13 +11,13 @@ import (
 )
 
 type user struct {
-	log *zap.Logger
+	log  *zap.Logger
 	conf *config.Config
 }
 
 func NewUser(log *zap.Logger, conf *config.Config) *user {
 	return &user{
-		log: log,
+		log:  log,
 		conf: conf,
 	}
 }
@@ -61,5 +61,5 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer " + token)
+	w.Header().Set("Authorization", "Bearer "+token)
 }

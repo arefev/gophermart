@@ -24,7 +24,7 @@ func api(mw *middleware.Middleware) http.Handler {
 
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Authorized)
-			
+
 			// Сохранение номера заказа
 			r.Post("/orders", orderHandler.Save)
 			// Получение списка загруженных заказов
@@ -38,7 +38,6 @@ func api(mw *middleware.Middleware) http.Handler {
 			r.Get("/withdrawals", balanceHandler.Withdrawals)
 		})
 
-		
 	})
 
 	return r
