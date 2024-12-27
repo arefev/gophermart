@@ -11,6 +11,7 @@ import (
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 func (m *Middleware) Authorized(next http.Handler) http.Handler {
@@ -28,7 +29,14 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 			return
 		}
 
-		login, err := m.getLoginFromToken(values[1])
+		claims, err := m.getTokenClaims(values[1])
+		if err != nil {
+			m.Log.Debug("get token claims fail", zap.Error(err))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		login, err := m.getLogin(*claims)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -45,7 +53,7 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middleware) getLoginFromToken(tokenStr string) (string, error) {
+func (m *Middleware) getTokenClaims(tokenStr string) (*jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
@@ -55,14 +63,18 @@ func (m *Middleware) getLoginFromToken(tokenStr string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", fmt.Errorf("token claims not found")
+		return nil, fmt.Errorf("token claims not found")
 	}
 
+	return &claims, nil
+}
+
+func (m *Middleware) getLogin(claims jwt.MapClaims) (string, error) {
 	login, ok := claims["login"]
 	if !ok {
 		return "", fmt.Errorf("login not found")
