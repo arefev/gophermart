@@ -16,11 +16,11 @@ const (
 )
 
 type Config struct {
-	TokenDuration int    `env:"TOKEN_DURATION"`
 	TokenSecret   string `env:"TOKEN_SECRET"`
 	Address       string `env:"ADDRESS"`
 	LogLevel      string `env:"LOG_LEVEL"`
 	DatabaseDSN   string `env:"DATABASE_DSN"`
+	TokenDuration int    `env:"TOKEN_DURATION"`
 }
 
 func NewConfig(params []string) (Config, error) {

@@ -60,5 +60,10 @@ func Transaction(action func(tx *sqlx.Tx) error) error {
 		return fmt.Errorf("db transaction fail: %w", err)
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("db transaction commit fail: %w", err)
+	}
+
+	return nil
 }

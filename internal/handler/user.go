@@ -32,7 +32,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrRegisterUserExists):
 		w.WriteHeader(http.StatusConflict)
 		return
-	case errors.Is(err, service.ErrRegisterJsonDecodeFail), errors.Is(err, service.ErrRegisterValidateFail):
+	case errors.Is(err, service.ErrRegisterJSONDecodeFail), errors.Is(err, service.ErrRegisterValidateFail):
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:
@@ -52,7 +52,7 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrAuthUserNotFound):
 		w.WriteHeader(http.StatusUnauthorized)
 		return
-	case errors.Is(err, service.ErrAuthJsonDecodeFail), errors.Is(err, service.ErrAuthValidateFail):
+	case errors.Is(err, service.ErrAuthJSONDecodeFail), errors.Is(err, service.ErrAuthValidateFail):
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:

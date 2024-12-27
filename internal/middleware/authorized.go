@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -59,45 +60,54 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 func (m *Middleware) getTokenClaims(tokenStr string) (*jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method")
+			return nil, errors.New("unexpected signing method")
 		}
 
 		return []byte(m.Conf.TokenSecret), nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token parse fail: %w", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, fmt.Errorf("token claims not found")
+		return nil, errors.New("token claims not found")
 	}
 
 	return &claims, nil
 }
 
 func (m *Middleware) getLogin(claims jwt.MapClaims) (string, error) {
-	login, ok := claims["login"]
+	errLoginNotFound := errors.New("login not found")
+	value, ok := claims["login"]
 	if !ok {
-		return "", fmt.Errorf("login not found")
+		return "", errLoginNotFound
 	}
 
-	return login.(string), nil
+	login, ok := value.(string)
+	if !ok {
+		return "", errLoginNotFound
+	}
+
+	return login, nil
 }
 
 func (m *Middleware) getUser(login string) (*model.User, error) {
 	var user *model.User
-	var err error
 	rep := repository.NewUser(m.Log)
 
-	err = db.Transaction(func(tx *sqlx.Tx) error {
-		user, err = rep.FindByLogin(tx, login)
-		if err != nil {
-			return fmt.Errorf("get user fail: %w", err)
+	err := db.Transaction(func(tx *sqlx.Tx) error {
+		user = rep.FindByLogin(tx, login)
+		if user == nil {
+			return errors.New("user not found")
 		}
 		return nil
 	})
 
-	return user, err
+	if err != nil {
+		return nil, fmt.Errorf("db transaction fail: %w", err)
+	}
+
+	return user, nil
 }

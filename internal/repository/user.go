@@ -25,15 +25,10 @@ func NewUser(log *zap.Logger) *User {
 }
 
 func (u *User) Exists(tx *sqlx.Tx, login string) bool {
-	user, err := u.FindByLogin(tx, login)
-	if err != nil {
-		u.log.Error("user exists fail", zap.Error(err))
-	}
-
-	return user != nil
+	return u.FindByLogin(tx, login) != nil
 }
 
-func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, error) {
+func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -42,7 +37,8 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, error) {
 
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("user find fail: %w", err)
+		u.log.Debug("user find by login fail", zap.Error(err))
+		return nil
 	}
 
 	defer func() {
@@ -54,13 +50,13 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, error) {
 	arg := map[string]interface{}{"login": login}
 	if err := stmt.GetContext(ctx, &user, arg); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("user find fail: %w", err)
+			u.log.Debug("user find by login fail", zap.Error(err))
 		}
 
-		return nil, nil
+		return nil
 	}
 
-	return &user, nil
+	return &user
 }
 
 func (u *User) Create(tx *sqlx.Tx, login string, password string) error {

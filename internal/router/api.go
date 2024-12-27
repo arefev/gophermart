@@ -37,7 +37,6 @@ func api(mw *middleware.Middleware) http.Handler {
 			// Получение информации о выводе средств
 			r.Get("/withdrawals", balanceHandler.Withdrawals)
 		})
-
 	})
 
 	return r

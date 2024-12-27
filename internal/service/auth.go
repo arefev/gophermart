@@ -19,12 +19,12 @@ import (
 
 var (
 	ErrAuthUserNotFound   = errors.New("user not found")
-	ErrAuthJsonDecodeFail = errors.New("json decode fail")
+	ErrAuthJSONDecodeFail = errors.New("json decode fail")
 	ErrAuthValidateFail   = errors.New("validate fail")
 )
 
 type UserFinder interface {
-	FindByLogin(tx *sqlx.Tx, login string) (*model.User, error)
+	FindByLogin(tx *sqlx.Tx, login string) *model.User
 }
 
 type UserAuthRequest struct {
@@ -51,7 +51,7 @@ func (a *auth) FromRequest(req *http.Request) (string, error) {
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&rUser); err != nil {
-		return "", fmt.Errorf("auth from request %w: %w", ErrAuthJsonDecodeFail, err)
+		return "", fmt.Errorf("auth from request %w: %w", ErrAuthJSONDecodeFail, err)
 	}
 
 	v := validator.New()
@@ -78,12 +78,11 @@ func (a *auth) FromRequest(req *http.Request) (string, error) {
 
 func (a *auth) getUser(login string) (*model.User, error) {
 	var user *model.User
-	var err error
 
-	err = db.Transaction(func(tx *sqlx.Tx) error {
-		user, err = a.user.FindByLogin(tx, login)
+	err := db.Transaction(func(tx *sqlx.Tx) error {
+		user = a.user.FindByLogin(tx, login)
 
-		if err != nil || user == nil {
+		if user == nil {
 			return ErrAuthUserNotFound
 		}
 

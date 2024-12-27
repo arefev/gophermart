@@ -15,7 +15,7 @@ import (
 
 var (
 	ErrRegisterUserExists     = errors.New("user already exists")
-	ErrRegisterJsonDecodeFail = errors.New("json decode fail")
+	ErrRegisterJSONDecodeFail = errors.New("json decode fail")
 	ErrRegisterValidateFail   = errors.New("validate fail")
 )
 
@@ -46,7 +46,7 @@ func (r *register) FromRequest(req *http.Request) error {
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&user); err != nil {
-		return fmt.Errorf("register from request %w: %w", ErrRegisterJsonDecodeFail, err)
+		return fmt.Errorf("register from request %w: %w", ErrRegisterJSONDecodeFail, err)
 	}
 
 	v := validator.New()
