@@ -16,15 +16,16 @@ import (
 
 func (m *Middleware) Authorized(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		header := r.Header.Get("Authorization")
 		if header == "" {
+			m.Log.Debug("header Authorization not found")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		values := strings.Split(header, " ")
 		if len(values) != 2 || values[0] != "Bearer" {
+			m.Log.Debug("get token from header fail")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -38,12 +39,14 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 
 		login, err := m.getLogin(*claims)
 		if err != nil {
+			m.Log.Debug("get login fail", zap.Error(err))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		user, err := m.getUser(login)
 		if err != nil {
+			m.Log.Debug("get user fail", zap.Error(err))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
