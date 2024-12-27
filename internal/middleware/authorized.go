@@ -1,11 +1,16 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/arefev/gophermart/internal/model"
+	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jmoiron/sqlx"
 )
 
 func (m *Middleware) Authorized(next http.Handler) http.Handler {
@@ -23,20 +28,27 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err := m.getLoginFromToken(values[1])
+		login, err := m.getLoginFromToken(values[1])
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		user, err := m.getUser(login)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), model.User{}, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func (m *Middleware) getLoginFromToken(tokenStr string) (string, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method")
 		}
 
 		return []byte(m.Conf.TokenSecret), nil
@@ -57,4 +69,20 @@ func (m *Middleware) getLoginFromToken(tokenStr string) (string, error) {
 	}
 
 	return login.(string), nil
+}
+
+func (m *Middleware) getUser(login string) (*model.User, error) {
+	var user *model.User
+	var err error
+	rep := repository.NewUser(m.Log)
+
+	err = db.Transaction(func(tx *sqlx.Tx) error {
+		user, err = rep.FindByLogin(tx, login)
+		if err != nil {
+			return fmt.Errorf("get user fail: %w", err)
+		}
+		return nil
+	})
+
+	return user, err
 }
