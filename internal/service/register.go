@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/config"
+	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
@@ -32,33 +34,42 @@ type UserCreateRequest struct {
 type register struct {
 	log  *zap.Logger
 	user UserCreator
+	conf *config.Config
 }
 
-func NewRegister(user UserCreator, log *zap.Logger) *register {
+func NewRegister(user UserCreator, log *zap.Logger, conf *config.Config) *register {
 	return &register{
 		log:  log,
 		user: user,
+		conf: conf,
 	}
 }
 
-func (r *register) FromRequest(req *http.Request) error {
+func (r *register) FromRequest(req *http.Request) (string, error) {
 	user := UserCreateRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&user); err != nil {
-		return fmt.Errorf("register from request %w: %w", ErrRegisterJSONDecodeFail, err)
+		return "", fmt.Errorf("register from request %w: %w", ErrRegisterJSONDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(user); err != nil {
-		return fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
+		return "", fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
 	}
 
 	if err := r.Create(user.Login, user.Password); err != nil {
-		return fmt.Errorf("register from request save fail: %w", err)
+		return "", fmt.Errorf("register from request save fail: %w", err)
 	}
 
-	return nil
+	rep := repository.NewUser(r.log)
+	auth := NewAuth(rep, r.log, r.conf)
+	token, err := auth.Authorize(user.Login, user.Password)
+	if err != nil {
+		return "", fmt.Errorf("register from request: authorize fail: %w", err)
+	}
+
+	return token, nil
 }
 
 func (r *register) Create(login string, password string) error {

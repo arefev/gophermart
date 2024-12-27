@@ -59,12 +59,21 @@ func (a *auth) FromRequest(req *http.Request) (string, error) {
 		return "", fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
 	}
 
-	user, err := a.getUser(rUser.Login)
+	token, err := a.Authorize(rUser.Login, rUser.Password)
 	if err != nil {
-		return "", fmt.Errorf("auth from request get user fail: %w", err)
+		return "", fmt.Errorf("auth from request fail: %w", err)
 	}
 
-	if !a.checkPassword(user, rUser.Password) {
+	return token, nil
+}
+
+func (a *auth) Authorize(login, password string) (string, error) {
+	user, err := a.getUser(login)
+	if err != nil {
+		return "", fmt.Errorf("authorize get user fail: %w", err)
+	}
+
+	if !a.checkPassword(user, password) {
 		return "", ErrAuthUserNotFound
 	}
 
