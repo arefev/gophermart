@@ -189,7 +189,7 @@ linters-settings:
   goimports:
     local-prefixes: ""
 
-  mnd:
+  gomnd:
     checks:
       - argument
       - case
@@ -363,14 +363,8 @@ linters-settings:
     # - "all": report all global loggers
     # - "default": report only the default slog logger
     no-global: "all"
-     # Enforce using methods that accept a context.
-    # Values:
-    # - "": disabled
-    # - "all": report all contextless calls
-    # - "scope": report only if a context exists in the scope of the outermost function
-    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#context-only
-    # Default: ""
-    context: "all"
+    # Enforce using methods that accept a context.
+    context-only: true
     # Enforce using static values for log messages.
     static-msg: false
     # Enforce using constants instead of raw keys.
@@ -492,6 +486,7 @@ linters:
     - errcheck
     - errname
     - errorlint
+    - execinquery
     - exhaustive
     - forcetypeassert
     - gocheckcompilerdirectives
@@ -500,7 +495,7 @@ linters:
     - godot
     - gofmt
     - goimports
-    - mnd
+    - gomnd
     - goprintffuncname
     - gosec
     - gosimple

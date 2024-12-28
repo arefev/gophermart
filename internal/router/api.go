@@ -11,14 +11,13 @@ import (
 
 func api(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
+	r.Use(chi_middleware.AllowContentType("application/json"))
 
 	userHandler := handler.NewUser(mw.Log, mw.Conf)
 	orderHandler := handler.NewOrder(mw.Log)
 	balanceHandler := handler.NewBalance(mw.Log)
 
 	r.Route("/user", func(r chi.Router) {
-		r.Use(chi_middleware.AllowContentType("application/json"))
-
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
 

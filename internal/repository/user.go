@@ -59,7 +59,7 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
 	return &user
 }
 
-func (u *User) Create(tx *sqlx.Tx, login string, password string) error {
+func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
