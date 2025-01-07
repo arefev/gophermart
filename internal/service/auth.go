@@ -45,40 +45,40 @@ func NewAuth(user UserFinder, log *zap.Logger, conf *config.Config) *auth {
 	}
 }
 
-func (a *auth) FromRequest(req *http.Request) (string, error) {
+func (a *auth) FromRequest(req *http.Request) (*jwt.Token, error) {
 	rUser := UserCreateRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&rUser); err != nil {
-		return "", fmt.Errorf("auth from request %w: %w", ErrAuthJSONDecodeFail, err)
+		return nil, fmt.Errorf("auth from request %w: %w", ErrAuthJSONDecodeFail, err)
 	}
 
 	v := validator.New()
 	if err := v.Struct(rUser); err != nil {
-		return "", fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
+		return nil, fmt.Errorf("auth from request %w: %w", ErrAuthValidateFail, err)
 	}
 
 	token, err := a.Authorize(rUser.Login, rUser.Password)
 	if err != nil {
-		return "", fmt.Errorf("auth from request fail: %w", err)
+		return nil, fmt.Errorf("auth from request fail: %w", err)
 	}
 
 	return token, nil
 }
 
-func (a *auth) Authorize(login, password string) (string, error) {
+func (a *auth) Authorize(login, password string) (*jwt.Token, error) {
 	user, err := a.GetUser(login)
 	if err != nil {
-		return "", fmt.Errorf("authorize get user fail: %w", err)
+		return nil, fmt.Errorf("authorize get user fail: %w", err)
 	}
 
 	if !a.checkPassword(user, password) {
-		return "", ErrAuthUserNotFound
+		return nil, ErrAuthUserNotFound
 	}
 
 	token, err := jwt.NewToken(a.conf.TokenSecret).GenerateToken(user, a.conf.TokenDuration)
 	if err != nil {
-		return "", fmt.Errorf("auth from request generate token fail: %w", err)
+		return nil, fmt.Errorf("auth from request generate token fail: %w", err)
 	}
 
 	return token, nil

@@ -12,6 +12,7 @@ import (
 func api(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chi_middleware.AllowContentType("application/json"))
+	r.Use(chi_middleware.SetHeader("Content-Type", "application/json"))
 
 	userHandler := handler.NewUser(mw.Log, mw.Conf)
 	orderHandler := handler.NewOrder(mw.Log)

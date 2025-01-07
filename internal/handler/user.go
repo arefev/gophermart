@@ -48,7 +48,11 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+token)
+	if err := service.JSONResponse(w, token); err != nil {
+		u.log.Error("Register user handler response", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (u *user) Login(w http.ResponseWriter, r *http.Request) {
@@ -70,5 +74,9 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+token)
+	if err := service.JSONResponse(w, token); err != nil {
+		u.log.Error("Login user handler response", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
