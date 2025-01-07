@@ -26,7 +26,7 @@ func api(mw *middleware.Middleware) http.Handler {
 			r.Use(mw.Authorized)
 
 			// Сохранение номера заказа
-			r.Post("/orders", orderHandler.Save)
+			r.Post("/orders", orderHandler.Create)
 			// Получение списка загруженных заказов
 			r.Get("/orders", orderHandler.List)
 
