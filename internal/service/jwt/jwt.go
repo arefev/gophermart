@@ -16,8 +16,8 @@ type JWT struct {
 }
 
 type Token struct {
-	Exp         int64  `json:"exp"`
 	AccessToken string `json:"accessToken"`
+	Exp         int64  `json:"exp"`
 }
 
 func NewToken(secret string) *JWT {
@@ -36,44 +36,44 @@ func (j *JWT) GenerateToken(user *model.User, duration int) (*Token, error) {
 
 	strToken, err := token.SignedString([]byte(j.secret))
 	if err != nil {
-		return &Token{}, fmt.Errorf("generate token fail: %w", err)
+		return nil, fmt.Errorf("generate token fail: %w", err)
 	}
 
 	return &Token{AccessToken: strToken, Exp: exp}, nil
 }
 
-func (t *JWT) Parse(tokenStr string) *JWT {
+func (j *JWT) Parse(tokenStr string) *JWT {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
 
-		return []byte(t.secret), nil
+		return []byte(j.secret), nil
 	})
 
 	if err != nil {
-		t.err = fmt.Errorf("token parse fail: %w", err)
-		return t
+		j.err = fmt.Errorf("token parse fail: %w", err)
+		return j
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		t.err = errors.New("claims not found")
-		return t
+		j.err = errors.New("claims not found")
+		return j
 	}
 
-	t.claims = claims
+	j.claims = claims
 
-	return t
+	return j
 }
 
-func (t *JWT) GetLogin() (string, error) {
-	if err := t.checkErr(); err != nil {
+func (j *JWT) GetLogin() (string, error) {
+	if err := j.checkErr(); err != nil {
 		return "", fmt.Errorf("get login fail: %w", err)
 	}
 
 	errLoginNotFound := errors.New("login not found")
-	value, ok := t.claims["login"]
+	value, ok := j.claims["login"]
 	if !ok {
 		return "", errLoginNotFound
 	}
@@ -86,12 +86,12 @@ func (t *JWT) GetLogin() (string, error) {
 	return login, nil
 }
 
-func (t *JWT) checkErr() error {
-	if t.err != nil {
-		return t.err
+func (j *JWT) checkErr() error {
+	if j.err != nil {
+		return j.err
 	}
 
-	if t.claims == nil {
+	if j.claims == nil {
 		return errors.New("claims not found")
 	}
 
