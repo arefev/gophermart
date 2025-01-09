@@ -52,7 +52,7 @@ func (m *Middleware) getUser(login string) (*model.User, error) {
 	var user *model.User
 	rep := repository.NewUser(m.Log)
 
-	user, err := service.NewAuth(rep, m.Log, m.Conf).GetUser(login)
+	user, err := service.NewAuth(rep, m.Conf).GetUser(login)
 	if err != nil {
 		return nil, fmt.Errorf("get user fail: %w", err)
 	}

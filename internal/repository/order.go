@@ -21,15 +21,15 @@ func NewOrder(log *zap.Logger) *Order {
 	}
 }
 
-func (o *Order) FindByUserAndNumber(tx *sqlx.Tx, userID int, number string) *model.Order {
+func (o *Order) FindByNumber(tx *sqlx.Tx, number string) *model.Order {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
 	order := model.Order{}
-	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE user_id = :user_id AND number = :number"
+	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {
-		o.log.Debug("order find by user and number fail", zap.Error(err))
+		o.log.Debug("order find by number fail", zap.Error(err))
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func (o *Order) FindByUserAndNumber(tx *sqlx.Tx, userID int, number string) *mod
 		}
 	}()
 
-	arg := map[string]interface{}{"user_id": userID, "number": number}
+	arg := map[string]interface{}{"number": number}
 	if err := stmt.GetContext(ctx, &order, arg); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			o.log.Debug("order find by user and number fail", zap.Error(err))
@@ -51,7 +51,7 @@ func (o *Order) FindByUserAndNumber(tx *sqlx.Tx, userID int, number string) *mod
 	return &order
 }
 
-func (o *Order) Create(tx *sqlx.Tx, userID, status int, number string) error {
+func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 

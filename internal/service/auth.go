@@ -12,7 +12,6 @@ import (
 	"github.com/arefev/gophermart/internal/service/jwt"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,15 +31,13 @@ type UserAuthRequest struct {
 }
 
 type auth struct {
-	log  *zap.Logger
 	user UserFinder
 	conf *config.Config
 }
 
-func NewAuth(user UserFinder, log *zap.Logger, conf *config.Config) *auth {
+func NewAuth(user UserFinder, conf *config.Config) *auth {
 	return &auth{
 		user: user,
-		log:  log,
 		conf: conf,
 	}
 }

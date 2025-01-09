@@ -1,11 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/repository"
-	"github.com/arefev/gophermart/internal/repository/db"
-	"github.com/jmoiron/sqlx"
+	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -19,12 +19,28 @@ func NewOrder(log *zap.Logger) *order {
 
 func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 	rep := repository.NewOrder(o.log)
-	
-	db.Transaction(func(tx *sqlx.Tx) error {
-		rep.Create(tx, 1, 1, "12345")
-		return nil
-	})
-	
+	s := service.NewOrderCreate(rep)
+
+	err := s.FromRequest(r)
+
+	switch {
+	case errors.Is(err, service.ErrOrderCreateValidateFail):
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	case errors.Is(err, service.ErrOrderCreateUploadedByCurrentUser):
+		w.WriteHeader(http.StatusOK)
+		return
+	case errors.Is(err, service.ErrOrderCreateUploadedByOtherUser):
+		w.WriteHeader(http.StatusConflict)
+		return
+	case err != nil:
+		o.log.Error("Create order handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+
 	o.log.Info("Create order handler called")
 }
 

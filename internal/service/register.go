@@ -10,7 +10,6 @@ import (
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,14 +30,12 @@ type UserCreateRequest struct {
 }
 
 type register struct {
-	log  *zap.Logger
 	user UserCreator
 	conf *config.Config
 }
 
-func NewRegister(user UserCreator, log *zap.Logger, conf *config.Config) *register {
+func NewRegister(user UserCreator, conf *config.Config) *register {
 	return &register{
-		log:  log,
 		user: user,
 		conf: conf,
 	}
