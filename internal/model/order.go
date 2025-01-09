@@ -23,13 +23,13 @@ const (
 
 func (s OrderStatus) String() string {
 	switch s {
-    case OrderStatusProcessing:
-        return "PROCESSING"
-    case OrderStatusInvalid:
-        return "INVALID"
-    case OrderStatusProcessed:
-        return "PROCESSED"
-    default:
-        return "NEW"
-    }
+	case OrderStatusProcessing:
+		return "PROCESSING"
+	case OrderStatusInvalid:
+		return "INVALID"
+	case OrderStatusProcessed:
+		return "PROCESSED"
+	default:
+		return "NEW"
+	}
 }
