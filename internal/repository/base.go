@@ -68,3 +68,27 @@ func (b *Base) createWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]
 
 	return nil
 }
+
+func (b *Base) getWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]any, query string, list interface{}) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
+	defer cancel()
+
+	stmt, err := tx.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("create with args: prepare named context fail: %w", err)
+	}
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			b.log.Warn("create with args: stmt close fail", zap.Error(err))
+		}
+	}()
+
+	err = stmt.SelectContext(ctx, list, args)
+
+	if err != nil {
+		return fmt.Errorf("create with args: exec query fail: %w", err)
+	}
+
+	return nil
+}

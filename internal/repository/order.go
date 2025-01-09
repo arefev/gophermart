@@ -58,3 +58,21 @@ func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number
 
 	return nil
 }
+
+func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	var list []model.Order
+	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE user_id = :user_id ORDER BY uploaded_at DESC"
+	args := map[string]interface{}{
+		"user_id": userID,
+	}
+
+	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+		o.log.Debug("order list fail: get with args fail", zap.Error(err))
+		return nil
+	}
+
+	return list
+}

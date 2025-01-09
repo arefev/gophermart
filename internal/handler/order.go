@@ -45,5 +45,27 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *order) List(w http.ResponseWriter, r *http.Request) {
+
+	rep := repository.NewOrder(o.log)
+	s := service.NewOrderList(rep)
+	orders, err := s.FromRequest(r)
+
+	if err != nil {
+		o.log.Error("List orders handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if err := service.JSONResponse(w, orders); err != nil {
+		o.log.Error("List orders handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	o.log.Info("List orders handler called")
 }
