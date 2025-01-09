@@ -39,16 +39,9 @@ func NewOrderCreate(rep OrderCreator) *OrderCreate {
 
 func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 	const errMsg = "order create from request:"
-	rOrder := OrderCreateRequest{}
-	d := json.NewDecoder(req.Body)
-
-	if err := d.Decode(&rOrder); err != nil {
-		return fmt.Errorf("%s decode fail: %w", errMsg, err)
-	}
-
-	v := validator.New()
-	if err := v.Struct(rOrder); err != nil {
-		return fmt.Errorf("%s %w: %w", errMsg, ErrOrderCreateValidateFail, err)
+	rOrder, err := ocr.validate(req)
+	if err != nil {
+		return fmt.Errorf("%s %w", errMsg, err)
 	}
 
 	user, err := UserWithContext(req.Context())
@@ -76,4 +69,20 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 	}
 
 	return nil
+}
+
+func (ocr *OrderCreate) validate(r *http.Request) (*OrderCreateRequest, error) {
+	rOrder := OrderCreateRequest{}
+	d := json.NewDecoder(r.Body)
+
+	if err := d.Decode(&rOrder); err != nil {
+		return nil, fmt.Errorf("decode fail: %w", err)
+	}
+
+	v := validator.New()
+	if err := v.Struct(rOrder); err != nil {
+		return nil, fmt.Errorf("validation fail: %w", err)
+	}
+
+	return &rOrder, nil
 }
