@@ -25,3 +25,4 @@ golangci-lint/
 
 .env
 server
+test_report.txt

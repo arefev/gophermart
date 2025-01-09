@@ -25,8 +25,8 @@ type UserCreator interface {
 }
 
 type UserCreateRequest struct {
-	Login    string `json:"login" validate:"required,gte=3,lte=10,alpha"`
-	Password string `json:"password" validate:"required,lte=30"`
+	Login    string `json:"login" validate:"required,gte=1,lte=20,alphanum"`
+	Password string `json:"password" validate:"required,lte=40"`
 }
 
 type register struct {

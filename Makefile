@@ -21,12 +21,12 @@ server: server-run
 
 
 server-run: server-build
-	./cmd/gophermart/server -d=${DATABASE_DSN} -a="${SERVER_ADDRESS}" -l="${LOG_LEVEL}" -s="${TOKEN_SECRET}"
+	./cmd/gophermart/gophermart -d=${DATABASE_DSN} -a="${SERVER_ADDRESS}:${SERVER_PORT}" -l="${LOG_LEVEL}" -s="${TOKEN_SECRET}"
 .PHONY: server-run
 
 
 server-build:
-	go build -o ./cmd/gophermart/server ./cmd/gophermart/
+	go build -o ./cmd/gophermart/gophermart ./cmd/gophermart/
 .PHONY: server-build
 
 
@@ -44,6 +44,21 @@ migrate-create:
 	migrate create -ext sql -dir ./db/migrations $(name)
 .PHONY: migrate-create
 
+test:
+	gophermarttest \
+		-gophermart-binary-path="./cmd/gophermart/gophermart" \
+		-gophermart-database-uri=${DATABASE_DSN} \
+		-gophermart-host=${SERVER_ADDRESS} \
+		-gophermart-port=${SERVER_PORT} \
+		-accrual-binary-path="./cmd/accrual/accrual_linux_amd64" \
+		-accrual-database-uri=${DATABASE_DSN} \
+		-accrual-host=${ACCRUAL_HOST} \
+		-accrual-port=${ACCRUAL_PORT} > ./test_report.txt
+.PHONY: test
+
+test-clear: 
+	rm test_report.txt
+.PHONY: test-clear
 
 golangci-lint-run: _golangci-lint-rm-unformatted-report
 .PHONY: golangci-lint-run
