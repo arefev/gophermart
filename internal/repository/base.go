@@ -45,7 +45,12 @@ func (b *Base) findWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]an
 	return nil
 }
 
-func (b *Base) createWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]any, query string) error {
+func (b *Base) createWithArgs(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	args map[string]any,
+	query string,
+) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -69,7 +74,13 @@ func (b *Base) createWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]
 	return nil
 }
 
-func (b *Base) getWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]any, query string, list interface{}) error {
+func (b *Base) getWithArgs(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	args map[string]any,
+	query string,
+	list interface{},
+) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 

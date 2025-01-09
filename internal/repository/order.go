@@ -64,7 +64,12 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 	defer cancel()
 
 	var list []model.Order
-	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE user_id = :user_id ORDER BY uploaded_at DESC"
+	query := `
+		SELECT id, user_id, number, status, uploaded_at, created_at, updated_at 
+		FROM orders 
+		WHERE user_id = :user_id 
+		ORDER BY uploaded_at DESC
+	`
 	args := map[string]interface{}{
 		"user_id": userID,
 	}

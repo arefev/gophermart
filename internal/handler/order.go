@@ -45,7 +45,6 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *order) List(w http.ResponseWriter, r *http.Request) {
-
 	rep := repository.NewOrder(o.log)
 	s := service.NewOrderList(rep)
 	orders, err := s.FromRequest(r)
