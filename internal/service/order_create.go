@@ -1,10 +1,11 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
@@ -72,11 +73,13 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 }
 
 func (ocr *OrderCreate) validate(r *http.Request) (*OrderCreateRequest, error) {
-	rOrder := OrderCreateRequest{}
-	d := json.NewDecoder(r.Body)
+	number, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body fail: %w", err)
+	}
 
-	if err := d.Decode(&rOrder); err != nil {
-		return nil, fmt.Errorf("decode fail: %w", err)
+	rOrder := OrderCreateRequest{
+		Number: strings.Trim(string(number), " "),
 	}
 
 	v := validator.New()
