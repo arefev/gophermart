@@ -2,8 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/arefev/gophermart/internal/model"
@@ -13,11 +11,13 @@ import (
 
 type Order struct {
 	log *zap.Logger
+	*Base
 }
 
 func NewOrder(log *zap.Logger) *Order {
 	return &Order{
-		log: log,
+		log:  log,
+		Base: NewBase(log),
 	}
 }
 
@@ -26,25 +26,15 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) *model.Order {
 	defer cancel()
 
 	order := model.Order{}
+	args := map[string]any{"number": number}
 	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
-	stmt, err := tx.PrepareNamedContext(ctx, query)
-	if err != nil {
-		o.log.Debug("order find by number fail", zap.Error(err))
+
+	if err := o.findWithArgs(ctx, tx, args, query, &order); err != nil {
+		o.log.Debug("find by number: find with args fail: %w", zap.Error(err))
 		return nil
 	}
 
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			o.log.Warn("order find fail", zap.Error(err))
-		}
-	}()
-
-	arg := map[string]interface{}{"number": number}
-	if err := stmt.GetContext(ctx, &order, arg); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			o.log.Debug("order find by user and number fail", zap.Error(err))
-		}
-
+	if order.ID == 0 {
 		return nil
 	}
 
@@ -56,27 +46,13 @@ func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number
 	defer cancel()
 
 	query := "INSERT INTO orders(user_id, number, status) VALUES(:user_id, :number, :status)"
-	stmt, err := tx.PrepareNamedContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("order create fail: %w", err)
+	args := map[string]interface{}{
+		"user_id": userID,
+		"number":  number,
+		"status":  status,
 	}
 
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			o.log.Warn("order create fail", zap.Error(err))
-		}
-	}()
-
-	_, err = stmt.ExecContext(
-		ctx,
-		map[string]interface{}{
-			"user_id": userID,
-			"number":  number,
-			"status":  status,
-		},
-	)
-
-	if err != nil {
+	if err := o.createWithArgs(ctx, tx, args, query); err != nil {
 		return fmt.Errorf("order create fail: %w", err)
 	}
 
