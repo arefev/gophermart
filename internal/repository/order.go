@@ -27,7 +27,11 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool) {
 
 	order := model.Order{}
 	args := map[string]any{"number": number}
-	query := "SELECT id, user_id, number, status, accrual, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
+	query := `
+		SELECT id, user_id, number, status, accrual, uploaded_at, created_at, updated_at 
+		FROM orders 
+		WHERE number = :number
+	`
 
 	ok, err := o.findWithArgs(ctx, tx, args, query, &order)
 	if err != nil {
