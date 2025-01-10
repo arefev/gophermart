@@ -21,13 +21,19 @@ func NewBase(log *zap.Logger) *Base {
 	return &Base{log: log}
 }
 
-func (b *Base) findWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]any, query string, entity any) error {
+func (b *Base) findWithArgs(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	args map[string]any,
+	query string,
+	entity any,
+) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return fmt.Errorf("find with args: prepare named context fail: %w", err)
+		return false, fmt.Errorf("find with args: prepare named context fail: %w", err)
 	}
 
 	defer func() {
@@ -37,12 +43,14 @@ func (b *Base) findWithArgs(ctx context.Context, tx *sqlx.Tx, args map[string]an
 	}()
 
 	if err := stmt.GetContext(ctx, entity, args); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("find with args: get fail: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
 		}
+
+		return false, fmt.Errorf("find with args: get fail: %w", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (b *Base) createWithArgs(

@@ -22,7 +22,7 @@ var (
 )
 
 type UserFinder interface {
-	FindByLogin(tx *sqlx.Tx, login string) *model.User
+	FindByLogin(tx *sqlx.Tx, login string) (*model.User, bool)
 }
 
 type UserAuthRequest struct {
@@ -83,11 +83,12 @@ func (a *auth) Authorize(login, password string) (*jwt.Token, error) {
 
 func (a *auth) GetUser(login string) (*model.User, error) {
 	var user *model.User
+	var ok bool
 
 	err := db.Transaction(func(tx *sqlx.Tx) error {
-		user = a.user.FindByLogin(tx, login)
+		user, ok = a.user.FindByLogin(tx, login)
 
-		if user == nil {
+		if !ok {
 			return ErrAuthUserNotFound
 		}
 

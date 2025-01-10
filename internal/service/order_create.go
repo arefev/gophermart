@@ -21,7 +21,7 @@ var (
 
 type OrderCreator interface {
 	Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error
-	FindByNumber(tx *sqlx.Tx, number string) *model.Order
+	FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool)
 }
 
 type OrderCreateRequest struct {
@@ -51,7 +51,8 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		if order := ocr.Rep.FindByNumber(tx, rOrder.Number); order != nil {
+		order, ok := ocr.Rep.FindByNumber(tx, rOrder.Number)
+		if ok {
 			if order.UserID == user.ID {
 				return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByCurrentUser)
 			}

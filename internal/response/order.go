@@ -7,10 +7,10 @@ import (
 )
 
 type Order struct {
+	UploadedAt time.Time `json:"uploaded_at"`
 	Number     string    `json:"number"`
 	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual,omitempty"`
-	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 func NewOrder(o *model.Order) Order {
@@ -24,8 +24,8 @@ func NewOrder(o *model.Order) Order {
 
 func NewOrders(l []model.Order) *[]Order {
 	orders := make([]Order, 0, len(l))
-	for _, o := range l {
-		orders = append(orders, NewOrder(&o))
+	for i := range l {
+		orders = append(orders, NewOrder(&l[i]))
 	}
 	return &orders
 }

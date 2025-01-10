@@ -22,10 +22,11 @@ func NewUser(log *zap.Logger) *User {
 }
 
 func (u *User) Exists(tx *sqlx.Tx, login string) bool {
-	return u.FindByLogin(tx, login) != nil
+	_, ok := u.FindByLogin(tx, login)
+	return ok
 }
 
-func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
+func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, bool) {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -33,16 +34,13 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
 	query := "SELECT id, login, password, created_at, updated_at FROM users WHERE login = :login"
 	arg := map[string]interface{}{"login": login}
 
-	if err := u.findWithArgs(ctx, tx, arg, query, &user); err != nil {
+	ok, err := u.findWithArgs(ctx, tx, arg, query, &user)
+	if err != nil {
 		u.log.Debug("find by login: find with args fail: %w", zap.Error(err))
-		return nil
+		return nil, false
 	}
 
-	if user.ID == 0 {
-		return nil
-	}
-
-	return &user
+	return &user, ok
 }
 
 func (u *User) Create(tx *sqlx.Tx, login, password string) error {
@@ -65,24 +63,4 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 	}
 
 	return nil
-}
-
-func (u *User) FindBalanceByUserID(tx *sqlx.Tx, userID int) *model.Balance {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
-	defer cancel()
-
-	balance := model.Balance{}
-	query := "SELECT id, user_id, current, withdrawn, created_at, updated_at FROM users_balance WHERE user_id = :user_id"
-	arg := map[string]interface{}{"user_id": userID}
-
-	if err := u.findWithArgs(ctx, tx, arg, query, &balance); err != nil {
-		u.log.Debug("find balance by user id: find with args fail: %w", zap.Error(err))
-		return nil
-	}
-
-	if balance.ID == 0 {
-		return nil
-	}
-
-	return &balance
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -10,7 +11,7 @@ import (
 )
 
 type UserBalanceFinder interface {
-	FindBalanceByUserID(tx *sqlx.Tx, userID int) *model.Balance
+	FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool)
 }
 
 type UserBalance struct {
@@ -29,11 +30,21 @@ func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
 		return nil, fmt.Errorf("user not found in context: %w", err)
 	}
 
+	balance, err := ub.FindByUserID(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find balance from request fail: %w", err)
+	}
+
+	return balance, nil
+}
+
+func (ub *UserBalance) FindByUserID(userID int) (*model.Balance, error) {
 	var balance *model.Balance
-	err = db.Transaction(func(tx *sqlx.Tx) error {
-		balance = ub.Rep.FindBalanceByUserID(tx, user.ID)
-		if balance == nil {
-			return fmt.Errorf("user balance not found")
+	var ok bool
+	err := db.Transaction(func(tx *sqlx.Tx) error {
+		balance, ok = ub.Rep.FindByUserID(tx, userID)
+		if !ok {
+			return errors.New("user balance not found")
 		}
 
 		return nil

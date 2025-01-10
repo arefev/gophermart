@@ -21,7 +21,7 @@ func NewOrder(log *zap.Logger) *Order {
 	}
 }
 
-func (o *Order) FindByNumber(tx *sqlx.Tx, number string) *model.Order {
+func (o *Order) FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool) {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -29,16 +29,13 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) *model.Order {
 	args := map[string]any{"number": number}
 	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
 
-	if err := o.findWithArgs(ctx, tx, args, query, &order); err != nil {
+	ok, err := o.findWithArgs(ctx, tx, args, query, &order)
+	if err != nil {
 		o.log.Debug("find by number: find with args fail: %w", zap.Error(err))
-		return nil
+		return nil, false
 	}
 
-	if order.ID == 0 {
-		return nil
-	}
-
-	return &order
+	return &order, ok
 }
 
 func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {

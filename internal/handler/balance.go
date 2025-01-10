@@ -17,7 +17,7 @@ func NewBalance(log *zap.Logger) *balance {
 }
 
 func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewUser(b.log)
+	rep := repository.NewBalance(b.log)
 	s := service.NewUserBalance(rep)
 
 	balance, err := s.FromRequest(r)
