@@ -65,7 +65,7 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 
 	var list []model.Order
 	query := `
-		SELECT id, user_id, number, status, uploaded_at, created_at, updated_at 
+		SELECT id, user_id, number, status, accrual, uploaded_at, created_at, updated_at 
 		FROM orders 
 		WHERE user_id = :user_id 
 		ORDER BY uploaded_at DESC
