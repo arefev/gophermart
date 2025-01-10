@@ -44,7 +44,7 @@ migrate-create:
 	migrate create -ext sql -dir ./db/migrations $(name)
 .PHONY: migrate-create
 
-test:
+test: test-clear
 	gophermarttest \
 		-gophermart-binary-path="./cmd/gophermart/gophermart" \
 		-gophermart-database-uri=${DATABASE_DSN} \
