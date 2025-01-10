@@ -67,7 +67,5 @@ func (o *order) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-
 	o.log.Info("List orders handler called")
 }
