@@ -31,7 +31,7 @@ func api(mw *middleware.Middleware) http.Handler {
 			r.Get("/orders", orderHandler.List)
 
 			// Получение текущего баланса
-			r.Get("/balance", balanceHandler.Get)
+			r.Get("/balance", balanceHandler.Find)
 			// Запрос на списание средств
 			r.Post("/balance/withdraw", balanceHandler.Withdraw)
 			// Получение информации о выводе средств

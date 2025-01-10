@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +16,19 @@ func NewBalance(log *zap.Logger) *balance {
 	return &balance{log: log}
 }
 
-func (b *balance) Get(w http.ResponseWriter, r *http.Request) {
+func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
+	rep := repository.NewUser(b.log)
+	s := service.NewUserBalance(rep)
+
+	balance, err := s.FromRequest(r)
+	if err != nil {
+		b.log.Error("Find balance handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	service.JSONResponse(w, balance)
+
 	b.log.Info("Get balance handler called")
 }
 

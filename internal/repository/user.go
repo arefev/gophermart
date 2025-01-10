@@ -66,3 +66,23 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 
 	return nil
 }
+
+func (u *User) FindBalanceByUserID(tx *sqlx.Tx, userID int) *model.Balance {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	balance := model.Balance{}
+	query := "SELECT id, user_id, current, withdrawn, created_at, updated_at FROM users_balance WHERE user_id = :user_id"
+	arg := map[string]interface{}{"user_id": userID}
+
+	if err := u.findWithArgs(ctx, tx, arg, query, &balance); err != nil {
+		u.log.Debug("find balance by user id: find with args fail: %w", zap.Error(err))
+		return nil
+	}
+
+	if balance.ID == 0 {
+		return nil
+	}
+
+	return &balance
+}
