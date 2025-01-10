@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
@@ -60,11 +61,13 @@ func (o *order) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := service.JSONResponse(w, orders); err != nil {
+	if err := service.JSONResponse(w, response.NewOrders(orders)); err != nil {
 		o.log.Error("List orders handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 
 	o.log.Info("List orders handler called")
 }
