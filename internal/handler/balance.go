@@ -27,9 +27,13 @@ func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service.JSONResponse(w, balance)
+	if err := service.JSONResponse(w, balance); err != nil {
+		b.log.Error("Find balance handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	b.log.Info("Get balance handler called")
+	b.log.Info("Find balance handler called")
 }
 
 func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
