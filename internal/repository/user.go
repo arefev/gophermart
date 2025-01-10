@@ -58,7 +58,7 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 		"password": password,
 	}
 
-	if err := u.createWithArgs(ctx, tx, args, query); err != nil {
+	if err := u.execWithArgs(ctx, tx, args, query); err != nil {
 		return fmt.Errorf("user create fail: %w", err)
 	}
 

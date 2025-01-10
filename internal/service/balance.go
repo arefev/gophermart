@@ -1,27 +1,47 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
+	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 )
 
 type UserBalanceFinder interface {
 	FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool)
+	UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error
+}
+
+type OrderFinder interface {
+	FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool)
+	AccrualByID(tx *sqlx.Tx, sum float64, id int) error
+	CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error
+}
+
+type WithdrawalRequest struct {
+	Number string  `json:"number" validate:"required,alphanum,gte=3,lte=50"`
+	Sum    float64 `json:"sum" validate:"required"`
 }
 
 type UserBalance struct {
-	Rep UserBalanceFinder
+	Rep      UserBalanceFinder
+	OrderRep OrderFinder
 }
 
 func NewUserBalance(rep UserBalanceFinder) *UserBalance {
 	return &UserBalance{
 		Rep: rep,
 	}
+}
+
+func (ub *UserBalance) SetOrderRep(rep OrderFinder) *UserBalance {
+	ub.OrderRep = rep
+	return ub
 }
 
 func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
@@ -55,4 +75,78 @@ func (ub *UserBalance) FindByUserID(userID int) (*model.Balance, error) {
 	}
 
 	return balance, nil
+}
+
+func (ub *UserBalance) WithdrawalFromRequest(req *http.Request) error {
+	rOrder, err := ub.validateWithdrawal(req)
+	if err != nil {
+		return fmt.Errorf("validate withdrawal from request fail: %w", err)
+	}
+
+	user, err := UserWithContext(req.Context())
+	if err != nil {
+		return fmt.Errorf("user not found in context: %w", err)
+	}
+
+	balance, err := ub.FindByUserID(user.ID)
+	if err != nil {
+		return fmt.Errorf("find balance from request fail: %w", err)
+	}
+
+	err = db.Transaction(func(tx *sqlx.Tx) error {
+		order, ok := ub.OrderRep.FindByNumber(tx, rOrder.Number)
+		if !ok {
+			return errors.New("order not found by current number")
+		}
+
+		if order.UserID != user.ID {
+			return errors.New("order not found by current user")
+		}
+
+		if order.Accrual.Valid {
+			return errors.New("withdrawal for current number already exists")
+		}
+
+		if balance.Current < rOrder.Sum {
+			return errors.New("not enough balance")
+		}
+
+		if err := ub.OrderRep.AccrualByID(tx, rOrder.Sum, order.ID); err != nil {
+			return fmt.Errorf("accrual order fail: %w", err)
+		}
+
+		current := balance.Current - rOrder.Sum
+		withdrawn := balance.Withdrawn + rOrder.Sum
+		if err := ub.Rep.UpdateByID(tx, balance.ID, current, withdrawn); err != nil {
+			return fmt.Errorf("update balance fail: %w", err)
+		}
+
+		if err := ub.OrderRep.CreateWithdrawal(tx, order.ID, rOrder.Sum); err != nil {
+			return fmt.Errorf("create withdrawal fail: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("transaction fail: %w", err)
+	}
+
+	return nil
+}
+
+func (ub *UserBalance) validateWithdrawal(r *http.Request) (*WithdrawalRequest, error) {
+	rOrder := WithdrawalRequest{}
+	d := json.NewDecoder(r.Body)
+
+	if err := d.Decode(&rOrder); err!= nil {
+        return nil, fmt.Errorf("decode json body fail: %w", err)
+    }
+
+	v := validator.New()
+	if err := v.Struct(rOrder); err != nil {
+		return nil, fmt.Errorf("validation fail: %w", err)
+	}
+
+	return &rOrder, nil
 }

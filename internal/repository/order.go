@@ -27,7 +27,7 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool) {
 
 	order := model.Order{}
 	args := map[string]any{"number": number}
-	query := "SELECT id, user_id, number, status, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
+	query := "SELECT id, user_id, number, status, accrual, uploaded_at, created_at, updated_at FROM orders WHERE number = :number"
 
 	ok, err := o.findWithArgs(ctx, tx, args, query, &order)
 	if err != nil {
@@ -49,7 +49,7 @@ func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number
 		"status":  status,
 	}
 
-	if err := o.createWithArgs(ctx, tx, args, query); err != nil {
+	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
 		return fmt.Errorf("order create fail: %w", err)
 	}
 
@@ -77,4 +77,38 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 	}
 
 	return list
+}
+
+func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, id int) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "UPDATE orders SET accrual = :accrual WHERE id = :id"
+	args := map[string]interface{}{
+		"accrual": sum,
+		"id":      id,
+	}
+
+	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("accrual by id fail: %w", err)
+	}
+
+	return nil
+}
+
+func (o *Order) CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "INSERT INTO withdrawals(order_id, sum) VALUES(:order_id, :sum)"
+	args := map[string]interface{}{
+		"order_id": orderID,
+		"sum":      sum,
+	}
+
+	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("create fail: %w", err)
+	}
+
+	return nil
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/jmoiron/sqlx"
@@ -35,4 +36,22 @@ func (b *Balance) FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool) {
 	}
 
 	return &balance, ok
+}
+
+func (b *Balance) UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "UPDATE users_balance SET current = :current, withdrawn = :withdrawn WHERE id = :id"
+	args := map[string]interface{}{
+		"id":        id,
+		"current":   current,
+		"withdrawn": withdrawn,
+	}
+
+	if err := b.execWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("accrual by id fail: %w", err)
+	}
+
+	return nil
 }

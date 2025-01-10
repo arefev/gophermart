@@ -9,16 +9,16 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type OrderFinder interface {
+type OrderGetter interface {
 	List(tx *sqlx.Tx, userID int) []model.Order
 }
 
 type OrderList struct {
-	rep  OrderFinder
+	rep  OrderGetter
 	list []model.Order
 }
 
-func NewOrderList(rep OrderFinder) *OrderList {
+func NewOrderList(rep OrderGetter) *OrderList {
 	return &OrderList{
 		rep:  rep,
 		list: make([]model.Order, 0),

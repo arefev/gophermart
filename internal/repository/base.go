@@ -53,7 +53,7 @@ func (b *Base) findWithArgs(
 	return true, nil
 }
 
-func (b *Base) createWithArgs(
+func (b *Base) execWithArgs(
 	ctx context.Context,
 	tx *sqlx.Tx,
 	args map[string]any,
@@ -64,18 +64,18 @@ func (b *Base) createWithArgs(
 
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return fmt.Errorf("create with args: prepare named context fail: %w", err)
+		return fmt.Errorf("exec with args: prepare named context fail: %w", err)
 	}
 
 	defer func() {
 		if err := stmt.Close(); err != nil {
-			b.log.Warn("create with args: stmt close fail", zap.Error(err))
+			b.log.Warn("exec with args: stmt close fail", zap.Error(err))
 		}
 	}()
 
 	_, err = stmt.ExecContext(ctx, args)
 	if err != nil {
-		return fmt.Errorf("create with args: exec query fail: %w", err)
+		return fmt.Errorf("exec with args: exec query fail: %w", err)
 	}
 
 	return nil
