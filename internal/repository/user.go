@@ -66,19 +66,3 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 
 	return nil
 }
-
-func (u *User) CreateBalance(tx *sqlx.Tx, userID int64) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
-	defer cancel()
-
-	query := "INSERT INTO users_balance(user_id) VALUES(:user_Id)"
-	args := map[string]interface{}{
-		"user_id":    userID,
-	}
-
-	if err := u.createWithArgs(ctx, tx, args, query); err != nil {
-		return fmt.Errorf("user balance create fail: %w", err)
-	}
-
-	return nil
-}
