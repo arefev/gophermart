@@ -45,7 +45,7 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
 	return &user
 }
 
-func (u *User) Create(tx *sqlx.Tx, login, password string) error {
+func (u *User) Create(tx *sqlx.Tx, login, password string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -55,9 +55,15 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 		"password": password,
 	}
 
-	if err := u.createWithArgs(ctx, tx, args, query); err != nil {
-		return fmt.Errorf("order create fail: %w", err)
+	res, err := u.createWithArgs(ctx, tx, args, query)
+	if err != nil {
+		return 0, fmt.Errorf("user create fail: %w", err)
 	}
 
-	return nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("user create fail: %w", err)
+	}
+
+	return id, nil
 }

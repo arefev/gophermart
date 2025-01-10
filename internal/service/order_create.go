@@ -20,7 +20,7 @@ var (
 )
 
 type OrderCreator interface {
-	Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error
+	Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) (int64, error)
 	FindByNumber(tx *sqlx.Tx, number string) *model.Order
 }
 
@@ -59,9 +59,11 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 			return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByOtherUser)
 		}
 
-		if err := ocr.Rep.Create(tx, user.ID, model.OrderStatusNew, rOrder.Number); err != nil {
+		_, err := ocr.Rep.Create(tx, user.ID, model.OrderStatusNew, rOrder.Number)
+		if err != nil {
 			return fmt.Errorf("%s create fail: %w", errMsg, err)
 		}
+
 		return nil
 	})
 

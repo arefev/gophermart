@@ -21,7 +21,7 @@ var (
 
 type UserCreator interface {
 	Exists(tx *sqlx.Tx, login string) bool
-	Create(tx *sqlx.Tx, login string, password string) error
+	Create(tx *sqlx.Tx, login string, password string) (int64, error)
 }
 
 type UserCreateRequest struct {
@@ -72,7 +72,8 @@ func (r *register) Create(login string, password string) error {
 			return fmt.Errorf("encrypt password fail: %w", err)
 		}
 
-		if err := r.user.Create(tx, login, password); err != nil {
+		_, err = r.user.Create(tx, login, password)
+		if err != nil {
 			return fmt.Errorf("create user fail: %w", err)
 		}
 
