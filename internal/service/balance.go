@@ -139,9 +139,9 @@ func (ub *UserBalance) validateWithdrawal(r *http.Request) (*WithdrawalRequest, 
 	rOrder := WithdrawalRequest{}
 	d := json.NewDecoder(r.Body)
 
-	if err := d.Decode(&rOrder); err!= nil {
-        return nil, fmt.Errorf("decode json body fail: %w", err)
-    }
+	if err := d.Decode(&rOrder); err != nil {
+		return nil, fmt.Errorf("decode json body fail: %w", err)
+	}
 
 	v := validator.New()
 	if err := v.Struct(rOrder); err != nil {

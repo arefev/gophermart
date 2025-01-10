@@ -42,11 +42,11 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 	s := service.NewUserBalance(bRep).SetOrderRep(oRep)
 
 	err := s.WithdrawalFromRequest(r)
-	if err!= nil {
-        b.log.Error("Withdraw balance handler", zap.Error(err))
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
+	if err != nil {
+		b.log.Error("Withdraw balance handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	b.log.Info("Withdraw balance handler called")
 }
