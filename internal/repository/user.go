@@ -49,7 +49,12 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
-	query := "INSERT INTO users(login, password) VALUES(:login, :password)"
+	query := `
+		WITH inserted AS (
+			INSERT INTO users(login, password) VALUES(:login, :password) RETURNING id
+		)
+		INSERT INTO users_balance(user_id) SELECT id FROM inserted
+	`
 	args := map[string]interface{}{
 		"login":    login,
 		"password": password,
