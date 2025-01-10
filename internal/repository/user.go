@@ -45,7 +45,7 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) *model.User {
 	return &user
 }
 
-func (u *User) Create(tx *sqlx.Tx, login, password string) (int64, error) {
+func (u *User) Create(tx *sqlx.Tx, login, password string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -55,15 +55,25 @@ func (u *User) Create(tx *sqlx.Tx, login, password string) (int64, error) {
 		"password": password,
 	}
 
-	res, err := u.createWithArgs(ctx, tx, args, query)
-	if err != nil {
-		return 0, fmt.Errorf("user create fail: %w", err)
+	if err := u.createWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("user create fail: %w", err)
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("user create fail: %w", err)
+	return nil
+}
+
+func (u *User) CreateBalance(tx *sqlx.Tx, userID int64) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "INSERT INTO users_balance(user_id) VALUES(:user_Id)"
+	args := map[string]interface{}{
+		"user_id":    userID,
 	}
 
-	return id, nil
+	if err := u.createWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("user balance create fail: %w", err)
+	}
+
+	return nil
 }

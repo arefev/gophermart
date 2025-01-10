@@ -50,13 +50,13 @@ func (b *Base) createWithArgs(
 	tx *sqlx.Tx,
 	args map[string]any,
 	query string,
-) (sql.Result, error) {
+) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	stmt, err := tx.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("create with args: prepare named context fail: %w", err)
+		return fmt.Errorf("create with args: prepare named context fail: %w", err)
 	}
 
 	defer func() {
@@ -65,13 +65,12 @@ func (b *Base) createWithArgs(
 		}
 	}()
 
-	res, err := stmt.ExecContext(ctx, args)
-
+	_, err = stmt.ExecContext(ctx, args)
 	if err != nil {
-		return nil, fmt.Errorf("create with args: exec query fail: %w", err)
+		return fmt.Errorf("create with args: exec query fail: %w", err)
 	}
 
-	return res, nil
+	return nil
 }
 
 func (b *Base) getWithArgs(

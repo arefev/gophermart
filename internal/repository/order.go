@@ -41,7 +41,7 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) *model.Order {
 	return &order
 }
 
-func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) (int64, error) {
+func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
@@ -52,17 +52,11 @@ func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number
 		"status":  status,
 	}
 
-	res, err := o.createWithArgs(ctx, tx, args, query)
-	if err != nil {
-		return 0, fmt.Errorf("order create fail: %w", err)
+	if err := o.createWithArgs(ctx, tx, args, query); err != nil {
+		return fmt.Errorf("order create fail: %w", err)
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("order create fail: %w", err)
-	}
-
-	return id, nil
+	return nil
 }
 
 func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
