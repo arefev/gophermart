@@ -103,9 +103,12 @@ func (w *worker) getStatus(number string) (*OrderResponse, error) {
 }
 
 func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
-	err := db.Transaction(func(tx *sqlx.Tx) error {
-		status := model.OrderStatusFromString(fields.Status)
+	status := model.OrderStatusFromString(fields.Status)
+	if status != model.OrderStatusProcessed && status != model.OrderStatusInvalid {
+		return nil
+	}
 
+	err := db.Transaction(func(tx *sqlx.Tx) error {
 		if status == model.OrderStatusProcessed {
 			balance, ok := w.balanceRep.FindByUserID(tx, order.UserID)
 			if !ok {
@@ -121,6 +124,7 @@ func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
 		if err := w.orderRep.AccrualByID(tx, fields.Accrual, status, order.ID); err != nil {
 			return fmt.Errorf("update order accrual fail: %w", err)
 		}
+		
 		return nil
 	})
 
