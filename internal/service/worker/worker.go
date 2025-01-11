@@ -43,16 +43,15 @@ func NewWorker(log *zap.Logger, orderRep OrderNewFinder, balanceRep UserBalanceF
 	}
 }
 
-func (w *worker) Run() error {
-	readTime := time.NewTicker(time.Duration(2) * time.Second).C
+func (w *worker) Run() {
+	const interval = 2
+	checkTime := time.NewTicker(time.Duration(interval) * time.Second).C
 
-	for range readTime {
-		fmt.Println("read time")
+	for range checkTime {
+		fmt.Println("check time")
 		orders := w.getNewOrders()
 		w.checkOrders(*orders)
 	}
-
-	return nil
 }
 
 func (w *worker) getNewOrders() *[]model.Order {
@@ -71,14 +70,14 @@ func (w *worker) getNewOrders() *[]model.Order {
 }
 
 func (w *worker) checkOrders(orders []model.Order) {
-	for _, order := range orders {
-		response, err := w.getStatus(order.Number)
+	for i := range orders {
+		response, err := w.getStatus(orders[i].Number)
 		if err != nil {
 			w.log.Error("check order status fail", zap.Error(err))
 			continue
 		}
 
-		if err := w.accrual(&order, response); err != nil {
+		if err := w.accrual(&orders[i], response); err != nil {
 			w.log.Error("update order fail", zap.Error(err))
 			continue
 		}
