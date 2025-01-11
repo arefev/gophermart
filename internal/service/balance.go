@@ -29,8 +29,8 @@ type OrderFinder interface {
 }
 
 type WithdrawalRequest struct {
-	Number string  `json:"number" validate:"required,alphanum,gte=3,lte=50"`
-	Sum    float64 `json:"sum" validate:"required"`
+	Order string  `json:"order" validate:"required,alphanum,gte=3,lte=50"`
+	Sum   float64 `json:"sum" validate:"required"`
 }
 
 type UserBalance struct {
@@ -107,7 +107,7 @@ func (ub *UserBalance) Withdrawal(user *model.User, wr *WithdrawalRequest) error
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		order, ok := ub.OrderRep.FindByNumber(tx, wr.Number)
+		order, ok := ub.OrderRep.FindByNumber(tx, wr.Order)
 		if !ok || order.UserID != user.ID {
 			return ErrOrderNotFound
 		}
