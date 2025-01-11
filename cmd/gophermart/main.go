@@ -48,8 +48,9 @@ func run() error {
 		zap.String("log level", conf.LogLevel),
 	)
 
-	rep := repository.NewOrder(zLog)
-	go worker.NewWorker(zLog, rep).Run()
+	orderRep := repository.NewOrder(zLog)
+	balanceRep := repository.NewBalance(zLog)
+	go worker.NewWorker(zLog, orderRep, balanceRep).Run()
 
 	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(conf.Address, router.New(zLog, &conf)))
 }

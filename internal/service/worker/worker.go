@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,6 +18,11 @@ type OrderNewFinder interface {
 	AccrualByID(tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error
 }
 
+type UserBalanceFinder interface {
+	FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool)
+	UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error
+}
+
 type OrderResponse struct {
 	Order   string  `json:"order"`
 	Status  string  `json:"status"`
@@ -24,14 +30,16 @@ type OrderResponse struct {
 }
 
 type worker struct {
-	rep OrderNewFinder
-	log *zap.Logger
+	orderRep   OrderNewFinder
+	balanceRep UserBalanceFinder
+	log        *zap.Logger
 }
 
-func NewWorker(log *zap.Logger, rep OrderNewFinder) *worker {
+func NewWorker(log *zap.Logger, orderRep OrderNewFinder, balanceRep UserBalanceFinder) *worker {
 	return &worker{
-		rep: rep,
-		log: log,
+		orderRep:   orderRep,
+		balanceRep: balanceRep,
+		log:        log,
 	}
 }
 
@@ -50,7 +58,7 @@ func (w *worker) Run() error {
 func (w *worker) getNewOrders() *[]model.Order {
 	var orders []model.Order
 	err := db.Transaction(func(tx *sqlx.Tx) error {
-		orders = w.rep.WithStatusNew(tx)
+		orders = w.orderRep.WithStatusNew(tx)
 		return nil
 	})
 
@@ -70,10 +78,10 @@ func (w *worker) checkOrders(orders []model.Order) {
 			continue
 		}
 
-		if err := w.updateOrder(order.ID, response); err != nil {
+		if err := w.accrual(&order, response); err != nil {
 			w.log.Error("update order fail", zap.Error(err))
-            continue
-        }
+			continue
+		}
 	}
 }
 
@@ -95,10 +103,23 @@ func (w *worker) getStatus(number string) (*OrderResponse, error) {
 	return &res, nil
 }
 
-func (w *worker) updateOrder(id int, fields *OrderResponse) error {
+func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
 	err := db.Transaction(func(tx *sqlx.Tx) error {
 		status := model.OrderStatusFromString(fields.Status)
-		if err := w.rep.AccrualByID(tx, fields.Accrual, status, id); err != nil {
+
+		if status == model.OrderStatusProcessed {
+			balance, ok := w.balanceRep.FindByUserID(tx, order.UserID)
+			if !ok {
+				return errors.New("user balance not found")
+			}
+
+			current := fields.Accrual + balance.Current
+			if err := w.balanceRep.UpdateByID(tx, balance.ID, current, balance.Withdrawn); err != nil {
+				return fmt.Errorf("update user balance fail: %w", err)
+			}
+		}
+
+		if err := w.orderRep.AccrualByID(tx, fields.Accrual, status, order.ID); err != nil {
 			return fmt.Errorf("update order accrual fail: %w", err)
 		}
 		return nil
