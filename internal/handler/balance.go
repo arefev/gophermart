@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/repository"
@@ -42,7 +43,15 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 	s := service.NewUserBalance(bRep).SetOrderRep(oRep)
 
 	err := s.WithdrawalFromRequest(r)
-	if err != nil {
+
+	switch {
+	case errors.Is(err, service.ErrNotEnoughBalance):
+		w.WriteHeader(http.StatusPaymentRequired)
+		return
+	case errors.Is(err, service.ErrValidationWithdrawal):
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	case err != nil:
 		b.log.Error("Withdraw balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -12,6 +12,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var (
+	ErrNotEnoughBalance     = errors.New("not enough balance")
+	ErrOrderNotFound        = errors.New("order not found")
+	ErrValidationWithdrawal = errors.New("validation withdrawal fail")
+)
+
 type UserBalanceFinder interface {
 	FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool)
 	UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error
@@ -19,7 +25,6 @@ type UserBalanceFinder interface {
 
 type OrderFinder interface {
 	FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool)
-	AccrualByID(tx *sqlx.Tx, sum float64, id int) error
 	CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error
 }
 
@@ -78,7 +83,7 @@ func (ub *UserBalance) FindByUserID(userID int) (*model.Balance, error) {
 }
 
 func (ub *UserBalance) WithdrawalFromRequest(req *http.Request) error {
-	rOrder, err := ub.validateWithdrawal(req)
+	wr, err := ub.validateWithdrawal(req)
 	if err != nil {
 		return fmt.Errorf("validate withdrawal from request fail: %w", err)
 	}
@@ -88,40 +93,36 @@ func (ub *UserBalance) WithdrawalFromRequest(req *http.Request) error {
 		return fmt.Errorf("user not found in context: %w", err)
 	}
 
+	if err := ub.Withdrawal(user, wr); err != nil {
+		return fmt.Errorf("withdrawal from request fail: %w", err)
+	}
+
+	return nil
+}
+
+func (ub *UserBalance) Withdrawal(user *model.User, wr *WithdrawalRequest) error {
 	balance, err := ub.FindByUserID(user.ID)
 	if err != nil {
-		return fmt.Errorf("find balance from request fail: %w", err)
+		return fmt.Errorf("balance not found: %w", err)
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		order, ok := ub.OrderRep.FindByNumber(tx, rOrder.Number)
-		if !ok {
-			return errors.New("order not found by current number")
+		order, ok := ub.OrderRep.FindByNumber(tx, wr.Number)
+		if !ok || order.UserID != user.ID {
+			return ErrOrderNotFound
 		}
 
-		if order.UserID != user.ID {
-			return errors.New("order not found by current user")
+		if balance.Current < wr.Sum {
+			return ErrNotEnoughBalance
 		}
 
-		if order.Accrual.Valid {
-			return errors.New("withdrawal for current number already exists")
-		}
-
-		if balance.Current < rOrder.Sum {
-			return errors.New("not enough balance")
-		}
-
-		if err := ub.OrderRep.AccrualByID(tx, rOrder.Sum, order.ID); err != nil {
-			return fmt.Errorf("accrual order fail: %w", err)
-		}
-
-		current := balance.Current - rOrder.Sum
-		withdrawn := balance.Withdrawn + rOrder.Sum
+		current := balance.Current - wr.Sum
+		withdrawn := balance.Withdrawn + wr.Sum
 		if err := ub.Rep.UpdateByID(tx, balance.ID, current, withdrawn); err != nil {
-			return fmt.Errorf("update balance fail: %w", err)
+			return fmt.Errorf("balance update fail: %w", err)
 		}
 
-		if err := ub.OrderRep.CreateWithdrawal(tx, order.ID, rOrder.Sum); err != nil {
+		if err := ub.OrderRep.CreateWithdrawal(tx, order.ID, wr.Sum); err != nil {
 			return fmt.Errorf("create withdrawal fail: %w", err)
 		}
 
@@ -145,7 +146,7 @@ func (ub *UserBalance) validateWithdrawal(r *http.Request) (*WithdrawalRequest, 
 
 	v := validator.New()
 	if err := v.Struct(rOrder); err != nil {
-		return nil, fmt.Errorf("validation fail: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrValidationWithdrawal, err)
 	}
 
 	return &rOrder, nil
