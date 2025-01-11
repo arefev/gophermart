@@ -10,7 +10,7 @@ import (
 )
 
 type WithdrawalGetter interface {
-	GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.WithdrawalWithOrderNumber
+	GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.Withdrawal
 }
 
 type WithdrawalList struct {
@@ -25,13 +25,13 @@ func NewWithdrawalList(rep WithdrawalGetter) *WithdrawalList {
 	}
 }
 
-func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.WithdrawalWithOrderNumber, error) {
+func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.Withdrawal, error) {
 	user, err := UserWithContext(r.Context())
 	if err != nil {
-		return []model.WithdrawalWithOrderNumber{}, fmt.Errorf("%w: %w", ErrUserNotFound, err)
+		return []model.Withdrawal{}, fmt.Errorf("%w: %w", ErrUserNotFound, err)
 	}
 
-	var list []model.WithdrawalWithOrderNumber
+	var list []model.Withdrawal
 	err = db.Transaction(func(tx *sqlx.Tx) error {
 		list = wl.rep.GetWithdrawalsByUserID(tx, user.ID)
 
@@ -39,7 +39,7 @@ func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.WithdrawalWithOr
 	})
 
 	if err != nil {
-		return []model.WithdrawalWithOrderNumber{}, fmt.Errorf("transaction fail: %w", err)
+		return []model.Withdrawal{}, fmt.Errorf("transaction fail: %w", err)
 	}
 
 	return list, nil

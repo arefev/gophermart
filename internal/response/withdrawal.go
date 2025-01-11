@@ -12,7 +12,7 @@ type Withdrawal struct {
 	Sum         float64   `json:"sum"`
 }
 
-func NewWithdrawal(w *model.WithdrawalWithOrderNumber) Withdrawal {
+func NewWithdrawal(w *model.Withdrawal) Withdrawal {
 	return Withdrawal{
 		Order:       w.Number,
 		Sum:         w.Sum,
@@ -20,7 +20,7 @@ func NewWithdrawal(w *model.WithdrawalWithOrderNumber) Withdrawal {
 	}
 }
 
-func NewWithdrawals(l []model.WithdrawalWithOrderNumber) *[]Withdrawal {
+func NewWithdrawals(l []model.Withdrawal) *[]Withdrawal {
 	withdrawals := make([]Withdrawal, 0, len(l))
 	for i := range l {
 		withdrawals = append(withdrawals, NewWithdrawal(&l[i]))

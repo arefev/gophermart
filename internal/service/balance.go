@@ -23,9 +23,8 @@ type UserBalanceFinder interface {
 	UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error
 }
 
-type OrderFinder interface {
-	FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool)
-	CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error
+type WithdrawarCreator interface {
+	CreateWithdrawal(tx *sqlx.Tx, userID int, number string, sum float64) error
 }
 
 type WithdrawalRequest struct {
@@ -34,8 +33,8 @@ type WithdrawalRequest struct {
 }
 
 type UserBalance struct {
-	Rep      UserBalanceFinder
-	OrderRep OrderFinder
+	Rep           UserBalanceFinder
+	WithdrawalRep WithdrawarCreator
 }
 
 func NewUserBalance(rep UserBalanceFinder) *UserBalance {
@@ -44,8 +43,8 @@ func NewUserBalance(rep UserBalanceFinder) *UserBalance {
 	}
 }
 
-func (ub *UserBalance) SetOrderRep(rep OrderFinder) *UserBalance {
-	ub.OrderRep = rep
+func (ub *UserBalance) SetWithdrawalRep(rep WithdrawarCreator) *UserBalance {
+	ub.WithdrawalRep = rep
 	return ub
 }
 
@@ -107,11 +106,6 @@ func (ub *UserBalance) Withdrawal(user *model.User, wr *WithdrawalRequest) error
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		order, ok := ub.OrderRep.FindByNumber(tx, wr.Order)
-		if !ok || order.UserID != user.ID {
-			return ErrOrderNotFound
-		}
-
 		if balance.Current < wr.Sum {
 			return ErrNotEnoughBalance
 		}
@@ -122,7 +116,7 @@ func (ub *UserBalance) Withdrawal(user *model.User, wr *WithdrawalRequest) error
 			return fmt.Errorf("balance update fail: %w", err)
 		}
 
-		if err := ub.OrderRep.CreateWithdrawal(tx, order.ID, wr.Sum); err != nil {
+		if err := ub.WithdrawalRep.CreateWithdrawal(tx, user.ID, wr.Order, wr.Sum); err != nil {
 			return fmt.Errorf("create withdrawal fail: %w", err)
 		}
 

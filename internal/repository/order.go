@@ -100,14 +100,15 @@ func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, id int) error {
 	return nil
 }
 
-func (o *Order) CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error {
+func (o *Order) CreateWithdrawal(tx *sqlx.Tx, userID int, number string, sum float64) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
-	query := "INSERT INTO withdrawals(order_id, sum) VALUES(:order_id, :sum)"
+	query := "INSERT INTO withdrawals(user_id, number, sum) VALUES(:user_id, :number, :sum)"
 	args := map[string]interface{}{
-		"order_id": orderID,
-		"sum":      sum,
+		"user_id": userID,
+		"number":  number,
+		"sum":     sum,
 	}
 
 	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
@@ -117,23 +118,22 @@ func (o *Order) CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error {
 	return nil
 }
 
-func (o *Order) GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.WithdrawalWithOrderNumber {
+func (o *Order) GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.Withdrawal {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
-	var list []model.WithdrawalWithOrderNumber
+	var list []model.Withdrawal
 	query := `
 		SELECT 
-			w.id,
-			w.order_id,
-			w.sum, 
-			w.processed_at,
-			w.created_at,
-			w.updated_at,
-			o.number
-		FROM withdrawals AS w
-		JOIN orders AS o ON w.order_id = o.id
-		WHERE o.user_id = :user_id
+			id,
+			user_id,
+			sum, 
+			processed_at,
+			created_at,
+			updated_at,
+			number
+		FROM withdrawals
+		WHERE user_id = :user_id
 	`
 	args := map[string]interface{}{
 		"user_id": userID,
@@ -141,7 +141,7 @@ func (o *Order) GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.Withdraw
 
 	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
 		o.log.Debug("get withdrawals by user id fail: get with args fail", zap.Error(err))
-		return []model.WithdrawalWithOrderNumber{}
+		return []model.Withdrawal{}
 	}
 
 	return list

@@ -41,7 +41,7 @@ func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
 func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 	bRep := repository.NewBalance(b.log)
 	oRep := repository.NewOrder(b.log)
-	s := service.NewUserBalance(bRep).SetOrderRep(oRep)
+	s := service.NewUserBalance(bRep).SetWithdrawalRep(oRep)
 
 	err := s.WithdrawalFromRequest(r)
 
