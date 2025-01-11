@@ -77,11 +77,11 @@ func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := service.JSONResponse(w, response.NewWithdrawals(list)); err!= nil {
-        b.log.Error("Withdrawals balance handler", zap.Error(err))
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
+	if err := service.JSONResponse(w, response.NewWithdrawals(list)); err != nil {
+		b.log.Error("Withdrawals balance handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	b.log.Info("Withdrawals balance handler called")
 }
