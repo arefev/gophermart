@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Withdrawal struct {
 	CreatedAt   time.Time `json:"-" db:"created_at"`
@@ -9,4 +11,9 @@ type Withdrawal struct {
 	Sum         float64   `json:"sum" db:"sum"`
 	OrderID     int       `json:"-" db:"order_id"`
 	ID          int       `json:"-" db:"id"`
+}
+
+type WithdrawalWithOrderNumber struct {
+	Withdrawal
+	Number  string `json:"number" db:"number"`
 }

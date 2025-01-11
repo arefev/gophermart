@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
@@ -61,5 +62,26 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
+	rep := repository.NewOrder(b.log)
+	s := service.NewWithdrawalList(rep)
+
+	list, err := s.FromRequest(r)
+
+	switch {
+	case len(list) == 0:
+		w.WriteHeader(http.StatusNoContent)
+		return
+	case err != nil:
+		b.log.Error("Withdrawals balance handler", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := service.JSONResponse(w, response.NewWithdrawals(list)); err!= nil {
+        b.log.Error("Withdrawals balance handler", zap.Error(err))
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+
 	b.log.Info("Withdrawals balance handler called")
 }

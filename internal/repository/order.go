@@ -77,7 +77,7 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 
 	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
 		o.log.Debug("order list fail: get with args fail", zap.Error(err))
-		return nil
+		return []model.Order{}
 	}
 
 	return list
@@ -115,4 +115,34 @@ func (o *Order) CreateWithdrawal(tx *sqlx.Tx, orderID int, sum float64) error {
 	}
 
 	return nil
+}
+
+func (o *Order) GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.WithdrawalWithOrderNumber {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	var list []model.WithdrawalWithOrderNumber
+	query := `
+		SELECT 
+			w.id,
+			w.order_id,
+			w.sum, 
+			w.processed_at,
+			w.created_at,
+			w.updated_at,
+			o.number
+		FROM withdrawals AS w
+		JOIN orders AS o ON w.order_id = o.id
+		WHERE o.user_id = :user_id
+	`
+	args := map[string]interface{}{
+		"user_id": userID,
+	}
+
+	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+		o.log.Debug("get withdrawals by user id fail: get with args fail", zap.Error(err))
+		return []model.WithdrawalWithOrderNumber{}
+	}
+
+	return list
 }
