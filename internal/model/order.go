@@ -37,3 +37,16 @@ func (s OrderStatus) String() string {
 		return "NEW"
 	}
 }
+
+func OrderStatusFromString(status string) OrderStatus {
+	switch status {
+	case "PROCESSING":
+		return OrderStatusProcessing
+	case "INVALID":
+		return OrderStatusInvalid
+	case "PROCESSED":
+		return OrderStatusProcessed
+	default:
+		return OrderStatusNew
+	}
+}

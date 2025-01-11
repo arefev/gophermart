@@ -8,8 +8,10 @@ import (
 
 	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/logger"
+	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
+	"github.com/arefev/gophermart/internal/service/worker"
 	"go.uber.org/zap"
 )
 
@@ -45,6 +47,9 @@ func run() error {
 		zap.String("address", conf.Address),
 		zap.String("log level", conf.LogLevel),
 	)
+
+	rep := repository.NewOrder(zLog)
+	go worker.NewWorker(zLog, rep).Run()
 
 	return fmt.Errorf("run: server start fail: %w", http.ListenAndServe(conf.Address, router.New(zLog, &conf)))
 }

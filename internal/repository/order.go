@@ -83,14 +83,38 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 	return list
 }
 
-func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, id int) error {
+func (o *Order) WithStatusNew(tx *sqlx.Tx) []model.Order {
 	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
 	defer cancel()
 
-	query := "UPDATE orders SET accrual = :accrual WHERE id = :id"
+	var list []model.Order
+	query := `
+		SELECT id, user_id, number, status, accrual, uploaded_at, created_at, updated_at 
+		FROM orders 
+		WHERE status = :status 
+		ORDER BY uploaded_at DESC
+	`
+	args := map[string]interface{}{
+		"status": model.OrderStatusNew,
+	}
+
+	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+		o.log.Debug("with status new fail: get with args fail", zap.Error(err))
+		return []model.Order{}
+	}
+
+	return list
+}
+
+func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+	defer cancel()
+
+	query := "UPDATE orders SET accrual = :accrual, status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id"
 	args := map[string]interface{}{
 		"accrual": sum,
 		"id":      id,
+		"status":  status,
 	}
 
 	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
