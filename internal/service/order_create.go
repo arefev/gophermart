@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
@@ -45,9 +46,9 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 		return fmt.Errorf("%s %w", errMsg, err)
 	}
 
-	user, err := UserWithContext(req.Context())
+	user, err := helper.UserWithContext(req.Context())
 	if err != nil {
-		return fmt.Errorf("%s user not found in context: %w", errMsg, err)
+		return helper.ErrUserNotFound
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
@@ -83,6 +84,10 @@ func (ocr *OrderCreate) validate(r *http.Request) (*OrderCreateRequest, error) {
 	rOrder := OrderCreateRequest{
 		Number: strings.Trim(string(number), " "),
 	}
+
+	if err := helper.CheckLuhn(rOrder.Number); err!= nil {
+        return nil, fmt.Errorf("luhn check fail: %w", err)
+    }
 
 	v := validator.New()
 	if err := v.Struct(rOrder); err != nil {

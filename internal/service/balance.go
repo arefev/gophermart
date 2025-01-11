@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
@@ -49,9 +50,9 @@ func (ub *UserBalance) SetWithdrawalRep(rep WithdrawarCreator) *UserBalance {
 }
 
 func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
-	user, err := UserWithContext(req.Context())
+	user, err := helper.UserWithContext(req.Context())
 	if err != nil {
-		return nil, ErrUserNotFound
+		return nil, helper.ErrUserNotFound
 	}
 
 	balance, err := ub.FindByUserID(user.ID)
@@ -87,9 +88,9 @@ func (ub *UserBalance) WithdrawalFromRequest(req *http.Request) error {
 		return fmt.Errorf("validate withdrawal from request fail: %w", err)
 	}
 
-	user, err := UserWithContext(req.Context())
+	user, err := helper.UserWithContext(req.Context())
 	if err != nil {
-		return ErrUserNotFound
+		return helper.ErrUserNotFound
 	}
 
 	if err := ub.Withdrawal(user, wr); err != nil {
@@ -136,6 +137,10 @@ func (ub *UserBalance) validateWithdrawal(r *http.Request) (*WithdrawalRequest, 
 
 	if err := d.Decode(&rOrder); err != nil {
 		return nil, fmt.Errorf("decode json body fail: %w", err)
+	}
+
+	if err := helper.CheckLuhn(rOrder.Order); err != nil {
+		return nil, fmt.Errorf("luhn check fail: %w", err)
 	}
 
 	v := validator.New()

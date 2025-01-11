@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/jmoiron/sqlx"
@@ -26,9 +27,9 @@ func NewOrderList(rep OrderGetter) *OrderList {
 }
 
 func (s *OrderList) FromRequest(r *http.Request) ([]model.Order, error) {
-	user, err := UserWithContext(r.Context())
+	user, err := helper.UserWithContext(r.Context())
 	if err != nil {
-		return []model.Order{}, fmt.Errorf("user not found in context: %w", err)
+		return []model.Order{}, helper.ErrUserNotFound
 	}
 
 	var orders []model.Order

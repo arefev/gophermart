@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/jmoiron/sqlx"
@@ -26,9 +27,9 @@ func NewWithdrawalList(rep WithdrawalGetter) *WithdrawalList {
 }
 
 func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.Withdrawal, error) {
-	user, err := UserWithContext(r.Context())
+	user, err := helper.UserWithContext(r.Context())
 	if err != nil {
-		return []model.Withdrawal{}, fmt.Errorf("%w: %w", ErrUserNotFound, err)
+		return []model.Withdrawal{}, helper.ErrUserNotFound
 	}
 
 	var list []model.Withdrawal
