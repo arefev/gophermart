@@ -40,7 +40,7 @@ func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.Withdrawal, erro
 	})
 
 	if err != nil {
-		return []model.Withdrawal{}, fmt.Errorf("transaction fail: %w", err)
+		return []model.Withdrawal{}, fmt.Errorf("withdrawal list transaction fail: %w", err)
 	}
 
 	return list, nil

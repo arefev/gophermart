@@ -40,7 +40,7 @@ func (s *OrderList) FromRequest(r *http.Request) ([]model.Order, error) {
 	})
 
 	if err != nil {
-		return []model.Order{}, fmt.Errorf("transaction fail: %w", err)
+		return []model.Order{}, fmt.Errorf("order list transaction fail: %w", err)
 	}
 
 	return orders, nil

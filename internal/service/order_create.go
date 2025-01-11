@@ -85,9 +85,9 @@ func (ocr *OrderCreate) validate(r *http.Request) (*OrderCreateRequest, error) {
 		Number: strings.Trim(string(number), " "),
 	}
 
-	if err := helper.CheckLuhn(rOrder.Number); err!= nil {
-        return nil, fmt.Errorf("luhn check fail: %w", err)
-    }
+	if err := helper.CheckLuhn(rOrder.Number); err != nil {
+		return nil, fmt.Errorf("luhn check fail: %w", err)
+	}
 
 	v := validator.New()
 	if err := v.Struct(rOrder); err != nil {

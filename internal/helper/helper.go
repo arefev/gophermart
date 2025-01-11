@@ -22,17 +22,20 @@ func UserWithContext(ctx context.Context) (*model.User, error) {
 }
 
 func CheckLuhn(number string) error {
+	const numForParity = 2
+	const numSubtract = 9
+
 	sum := 0
 	numDigits := len(number)
-	parity := numDigits % 2
+	parity := numDigits % numForParity
 
 	for i, digit := range number {
 		digitInt := int(digit - '0')
 
-		if i%2 == parity {
-			digitInt *= 2
-			if digitInt > 9 {
-				digitInt -= 9
+		if i%numForParity == parity {
+			digitInt *= numForParity
+			if digitInt > numSubtract {
+				digitInt -= numSubtract
 			}
 		}
 
