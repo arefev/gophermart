@@ -30,6 +30,11 @@ server-build:
 .PHONY: server-build
 
 
+accrual:
+	./cmd/accrual/accrual -a=${ACCRUAL_HOST}:${ACCRUAL_PORT}
+.PHONY: accrual
+
+
 migrate-up:
 	migrate -path ./db/migrations -database ${DATABASE_DSN} up
 .PHONY: migrate-up
