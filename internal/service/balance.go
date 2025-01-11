@@ -52,7 +52,7 @@ func (ub *UserBalance) SetOrderRep(rep OrderFinder) *UserBalance {
 func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
 	user, err := UserWithContext(req.Context())
 	if err != nil {
-		return nil, fmt.Errorf("user not found in context: %w", err)
+		return nil, ErrUserNotFound
 	}
 
 	balance, err := ub.FindByUserID(user.ID)
@@ -76,7 +76,7 @@ func (ub *UserBalance) FindByUserID(userID int) (*model.Balance, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("transaction fail: %w", err)
+		return nil, fmt.Errorf("find by user id %w: %w", db.ErrTransactionFail, err)
 	}
 
 	return balance, nil
@@ -90,7 +90,7 @@ func (ub *UserBalance) WithdrawalFromRequest(req *http.Request) error {
 
 	user, err := UserWithContext(req.Context())
 	if err != nil {
-		return fmt.Errorf("user not found in context: %w", err)
+		return ErrUserNotFound
 	}
 
 	if err := ub.Withdrawal(user, wr); err != nil {
@@ -130,7 +130,7 @@ func (ub *UserBalance) Withdrawal(user *model.User, wr *WithdrawalRequest) error
 	})
 
 	if err != nil {
-		return fmt.Errorf("transaction fail: %w", err)
+		return fmt.Errorf("withdrawal %w: %w", db.ErrTransactionFail, err)
 	}
 
 	return nil

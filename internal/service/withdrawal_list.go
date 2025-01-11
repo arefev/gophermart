@@ -28,7 +28,7 @@ func NewWithdrawalList(rep WithdrawalGetter) *WithdrawalList {
 func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.WithdrawalWithOrderNumber, error) {
 	user, err := UserWithContext(r.Context())
 	if err != nil {
-		return []model.WithdrawalWithOrderNumber{}, fmt.Errorf("user not found in context: %w", err)
+		return []model.WithdrawalWithOrderNumber{}, fmt.Errorf("%w: %w", ErrUserNotFound, err)
 	}
 
 	var list []model.WithdrawalWithOrderNumber

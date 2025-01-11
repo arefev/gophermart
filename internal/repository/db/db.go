@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var ErrTransactionFail = errors.New("transaction fail")
+
 type db struct {
 	db  *sqlx.DB
 	log *zap.Logger
@@ -45,7 +47,7 @@ func Connection() *sqlx.DB {
 func Transaction(action func(tx *sqlx.Tx) error) error {
 	tx, err := Connection().Beginx()
 	if err != nil {
-		return fmt.Errorf("db transaction failed: %w", err)
+		return fmt.Errorf("db transaction begin fail: %w", err)
 	}
 
 	defer func() {
@@ -57,7 +59,7 @@ func Transaction(action func(tx *sqlx.Tx) error) error {
 	}()
 
 	if err := action(tx); err != nil {
-		return fmt.Errorf("db transaction fail: %w", err)
+		return fmt.Errorf("db %w: %w", ErrTransactionFail, err)
 	}
 
 	err = tx.Commit()

@@ -14,6 +14,6 @@ type Withdrawal struct {
 }
 
 type WithdrawalWithOrderNumber struct {
-	Withdrawal
 	Number string `json:"number" db:"number"`
+	Withdrawal
 }

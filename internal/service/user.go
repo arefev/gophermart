@@ -7,6 +7,10 @@ import (
 	"github.com/arefev/gophermart/internal/model"
 )
 
+var (
+	ErrUserNotFound = errors.New("user not found")
+)
+
 func UserWithContext(ctx context.Context) (*model.User, error) {
 	user, ok := ctx.Value(model.User{}).(*model.User)
 
