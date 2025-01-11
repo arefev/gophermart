@@ -43,7 +43,7 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 	const errMsg = "order create from request:"
 	rOrder, err := ocr.validate(req)
 	if err != nil {
-		return fmt.Errorf("%s %w", errMsg, err)
+		return fmt.Errorf("%w %w", ErrOrderCreateValidateFail, err)
 	}
 
 	user, err := helper.UserWithContext(req.Context())

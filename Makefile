@@ -55,7 +55,7 @@ test: test-clear
 		-gophermart-database-uri=${DATABASE_DSN} \
 		-gophermart-host=${SERVER_ADDRESS} \
 		-gophermart-port=${SERVER_PORT} \
-		-accrual-binary-path="./cmd/accrual/accrual_linux_amd64" \
+		-accrual-binary-path="./cmd/accrual/accrual" \
 		-accrual-database-uri=${DATABASE_DSN} \
 		-accrual-host=${ACCRUAL_HOST} \
 		-accrual-port=${ACCRUAL_PORT} > ./test_report.txt
