@@ -34,8 +34,6 @@ func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	b.log.Info("Find balance handler called")
 }
 
 func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +55,6 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	b.log.Info("Withdraw balance handler called")
 }
 
 func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +78,4 @@ func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	b.log.Info("Withdrawals balance handler called")
 }

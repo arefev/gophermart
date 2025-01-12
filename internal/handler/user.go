@@ -23,8 +23,6 @@ func NewUser(log *zap.Logger, conf *config.Config) *user {
 }
 
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
-	u.log.Info("Register user handler called")
-
 	rep := repository.NewUser(u.log)
 	user, err := service.NewRegister(rep, u.conf).FromRequest(r)
 
@@ -52,8 +50,6 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *user) Login(w http.ResponseWriter, r *http.Request) {
-	u.log.Info("Login user handler called")
-
 	rep := repository.NewUser(u.log)
 	token, err := service.NewAuth(rep, u.conf).FromRequest(r)
 

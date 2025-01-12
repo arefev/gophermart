@@ -77,6 +77,7 @@ func run() error {
 
 	g.Go(func() error {
 		<-mainCtx.Done()
+		zLog.Info("Server stopped")
 		return server.Shutdown(gCtx)
 	})
 

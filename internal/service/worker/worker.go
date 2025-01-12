@@ -57,7 +57,7 @@ func (w *worker) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			w.log.Info("worker stopped")
+			w.log.Info("Worker stopped")
 			return fmt.Errorf("worker stopped: %w", ctx.Err())
 		case <-pollTime:
 			w.checkOrders(ctx, *w.getNewOrders(ctx))

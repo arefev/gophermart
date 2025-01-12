@@ -41,8 +41,6 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-
-	o.log.Info("Create order handler called")
 }
 
 func (o *order) List(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +64,4 @@ func (o *order) List(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	o.log.Info("List orders handler called")
 }
