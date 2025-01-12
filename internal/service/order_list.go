@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type OrderGetter interface {
-	List(tx *sqlx.Tx, userID int) []model.Order
+	List(ctx context.Context, tx *sqlx.Tx, userID int) []model.Order
 }
 
 type OrderList struct {
@@ -34,7 +35,7 @@ func (s *OrderList) FromRequest(r *http.Request) ([]model.Order, error) {
 
 	var orders []model.Order
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		orders = s.rep.List(tx, user.ID)
+		orders = s.rep.List(r.Context(), tx, user.ID)
 
 		return nil
 	})

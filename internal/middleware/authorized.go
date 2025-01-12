@@ -36,7 +36,7 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := m.getUser(login)
+		user, err := m.getUser(r.Context(), login)
 		if err != nil {
 			m.Log.Debug("get user fail", zap.Error(err))
 			w.WriteHeader(http.StatusUnauthorized)
@@ -48,11 +48,11 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middleware) getUser(login string) (*model.User, error) {
+func (m *Middleware) getUser(ctx context.Context, login string) (*model.User, error) {
 	var user *model.User
 	rep := repository.NewUser(m.Log)
 
-	user, err := service.NewAuth(rep, m.Conf).GetUser(login)
+	user, err := service.NewAuth(rep, m.Conf).GetUser(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("get user fail: %w", err)
 	}

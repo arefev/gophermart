@@ -21,8 +21,8 @@ func NewOrder(log *zap.Logger) *Order {
 	}
 }
 
-func (o *Order) FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool) {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*model.Order, bool) {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	order := model.Order{}
@@ -42,8 +42,8 @@ func (o *Order) FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool) {
 	return &order, ok
 }
 
-func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) Create(ctx context.Context, tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	query := "INSERT INTO orders(user_id, number, status) VALUES(:user_id, :number, :status)"
@@ -60,8 +60,8 @@ func (o *Order) Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number
 	return nil
 }
 
-func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) List(ctx context.Context, tx *sqlx.Tx, userID int) []model.Order {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	var list []model.Order
@@ -83,8 +83,8 @@ func (o *Order) List(tx *sqlx.Tx, userID int) []model.Order {
 	return list
 }
 
-func (o *Order) WithStatusNew(tx *sqlx.Tx) []model.Order {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) WithStatusNew(ctx context.Context, tx *sqlx.Tx) []model.Order {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	var list []model.Order
@@ -106,8 +106,8 @@ func (o *Order) WithStatusNew(tx *sqlx.Tx) []model.Order {
 	return list
 }
 
-func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) AccrualByID(ctx context.Context, tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	query := "UPDATE orders SET accrual = :accrual, status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id"
@@ -124,8 +124,8 @@ func (o *Order) AccrualByID(tx *sqlx.Tx, sum float64, status model.OrderStatus, 
 	return nil
 }
 
-func (o *Order) CreateWithdrawal(tx *sqlx.Tx, userID int, number string, sum float64) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) CreateWithdrawal(ctx context.Context, tx *sqlx.Tx, userID int, number string, sum float64) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	query := "INSERT INTO withdrawals(user_id, number, sum) VALUES(:user_id, :number, :sum)"
@@ -142,8 +142,8 @@ func (o *Order) CreateWithdrawal(tx *sqlx.Tx, userID int, number string, sum flo
 	return nil
 }
 
-func (o *Order) GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.Withdrawal {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (o *Order) GetWithdrawalsByUserID(ctx context.Context, tx *sqlx.Tx, userID int) []model.Withdrawal {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	var list []model.Withdrawal

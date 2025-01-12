@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,8 +21,8 @@ var (
 )
 
 type UserCreator interface {
-	Exists(tx *sqlx.Tx, login string) bool
-	Create(tx *sqlx.Tx, login string, password string) error
+	Exists(ctx context.Context, tx *sqlx.Tx, login string) bool
+	Create(ctx context.Context, tx *sqlx.Tx, login string, password string) error
 }
 
 type UserCreateRequest struct {
@@ -54,16 +55,16 @@ func (r *register) FromRequest(req *http.Request) (*UserCreateRequest, error) {
 		return nil, fmt.Errorf("register from request %w: %w", ErrRegisterValidateFail, err)
 	}
 
-	if err := r.Create(user.Login, user.Password); err != nil {
+	if err := r.Create(req.Context(), user.Login, user.Password); err != nil {
 		return nil, fmt.Errorf("register from request save fail: %w", err)
 	}
 
 	return &user, nil
 }
 
-func (r *register) Create(login string, password string) error {
+func (r *register) Create(ctx context.Context, login string, password string) error {
 	err := db.Transaction(func(tx *sqlx.Tx) error {
-		if r.user.Exists(tx, login) {
+		if r.user.Exists(ctx, tx, login) {
 			return ErrRegisterUserExists
 		}
 
@@ -72,7 +73,7 @@ func (r *register) Create(login string, password string) error {
 			return fmt.Errorf("encrypt password fail: %w", err)
 		}
 
-		if err := r.user.Create(tx, login, password); err != nil {
+		if err := r.user.Create(ctx, tx, login, password); err != nil {
 			return fmt.Errorf("create user fail: %w", err)
 		}
 

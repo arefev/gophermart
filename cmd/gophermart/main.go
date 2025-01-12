@@ -56,7 +56,7 @@ func run() error {
 	g.Go(func() error {
 		orderRep := repository.NewOrder(zLog)
 		balanceRep := repository.NewBalance(zLog)
-		worker.NewWorker(zLog, orderRep, balanceRep).Run(mainCtx)
+		worker.NewWorker(zLog, orderRep, balanceRep).Run(gCtx)
 		return nil
 	})
 
@@ -68,9 +68,9 @@ func run() error {
 
 	server := http.Server{
 		Addr:    conf.Address,
-        Handler: router.New(zLog, &conf),
+		Handler: router.New(zLog, &conf),
 		BaseContext: func(_ net.Listener) context.Context {
-			return mainCtx
+			return gCtx
 		},
 	}
 
@@ -80,7 +80,7 @@ func run() error {
 
 	g.Go(func() error {
 		<-mainCtx.Done()
-        return server.Shutdown(gCtx)
+		return server.Shutdown(gCtx)
 	})
 
 	if err := g.Wait(); err != nil {

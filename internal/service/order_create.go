@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -21,8 +22,8 @@ var (
 )
 
 type OrderCreator interface {
-	Create(tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error
-	FindByNumber(tx *sqlx.Tx, number string) (*model.Order, bool)
+	Create(ctx context.Context, tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error
+	FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*model.Order, bool)
 }
 
 type OrderCreateRequest struct {
@@ -52,7 +53,7 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 	}
 
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		order, ok := ocr.Rep.FindByNumber(tx, rOrder.Number)
+		order, ok := ocr.Rep.FindByNumber(req.Context(), tx, rOrder.Number)
 		if ok {
 			if order.UserID == user.ID {
 				return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByCurrentUser)
@@ -61,7 +62,7 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 			return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByOtherUser)
 		}
 
-		if err := ocr.Rep.Create(tx, user.ID, model.OrderStatusNew, rOrder.Number); err != nil {
+		if err := ocr.Rep.Create(req.Context(), tx, user.ID, model.OrderStatusNew, rOrder.Number); err != nil {
 			return fmt.Errorf("%s create fail: %w", errMsg, err)
 		}
 

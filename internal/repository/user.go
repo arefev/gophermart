@@ -21,13 +21,13 @@ func NewUser(log *zap.Logger) *User {
 	}
 }
 
-func (u *User) Exists(tx *sqlx.Tx, login string) bool {
-	_, ok := u.FindByLogin(tx, login)
+func (u *User) Exists(ctx context.Context, tx *sqlx.Tx, login string) bool {
+	_, ok := u.FindByLogin(ctx, tx, login)
 	return ok
 }
 
-func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, bool) {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (u *User) FindByLogin(ctx context.Context, tx *sqlx.Tx, login string) (*model.User, bool) {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	user := model.User{}
@@ -43,8 +43,8 @@ func (u *User) FindByLogin(tx *sqlx.Tx, login string) (*model.User, bool) {
 	return &user, ok
 }
 
-func (u *User) Create(tx *sqlx.Tx, login, password string) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (u *User) Create(ctx context.Context, tx *sqlx.Tx, login, password string) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	query := `

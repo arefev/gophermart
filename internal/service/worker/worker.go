@@ -15,13 +15,13 @@ import (
 )
 
 type OrderNewFinder interface {
-	WithStatusNew(tx *sqlx.Tx) []model.Order
-	AccrualByID(tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error
+	WithStatusNew(ctx context.Context, tx *sqlx.Tx) []model.Order
+	AccrualByID(ctx context.Context, tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error
 }
 
 type UserBalanceFinder interface {
-	FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool)
-	UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error
+	FindByUserID(ctx context.Context, tx *sqlx.Tx, userID int) (*model.Balance, bool)
+	UpdateByID(ctx context.Context, tx *sqlx.Tx, id int, current, withdrawn float64) error
 }
 
 type OrderResponse struct {
@@ -46,7 +46,7 @@ func NewWorker(log *zap.Logger, orderRep OrderNewFinder, balanceRep UserBalanceF
 
 func (w *worker) Run(ctx context.Context) error {
 	w.log.Info("Worker started")
-	
+
 	const interval = 2
 	checkTime := time.NewTicker(time.Duration(interval) * time.Second).C
 
@@ -56,15 +56,15 @@ func (w *worker) Run(ctx context.Context) error {
 			w.log.Info("worker stopped")
 			return ctx.Err()
 		case <-checkTime:
-			w.checkOrders(*w.getNewOrders())
+			w.checkOrders(ctx, *w.getNewOrders(ctx))
 		}
 	}
 }
 
-func (w *worker) getNewOrders() *[]model.Order {
+func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
 	var orders []model.Order
 	err := db.Transaction(func(tx *sqlx.Tx) error {
-		orders = w.orderRep.WithStatusNew(tx)
+		orders = w.orderRep.WithStatusNew(ctx, tx)
 		return nil
 	})
 
@@ -76,7 +76,7 @@ func (w *worker) getNewOrders() *[]model.Order {
 	return &orders
 }
 
-func (w *worker) checkOrders(orders []model.Order) {
+func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
 	for i := range orders {
 		response, err := w.getStatus(orders[i].Number)
 		if err != nil {
@@ -84,7 +84,7 @@ func (w *worker) checkOrders(orders []model.Order) {
 			continue
 		}
 
-		if err := w.accrual(&orders[i], response); err != nil {
+		if err := w.accrual(ctx, &orders[i], response); err != nil {
 			w.log.Error("update order fail", zap.Error(err))
 			continue
 		}
@@ -109,7 +109,7 @@ func (w *worker) getStatus(number string) (*OrderResponse, error) {
 	return &res, nil
 }
 
-func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
+func (w *worker) accrual(ctx context.Context, order *model.Order, fields *OrderResponse) error {
 	status := model.OrderStatusFromString(fields.Status)
 	if status != model.OrderStatusProcessed && status != model.OrderStatusInvalid {
 		return nil
@@ -117,18 +117,18 @@ func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
 
 	err := db.Transaction(func(tx *sqlx.Tx) error {
 		if status == model.OrderStatusProcessed {
-			balance, ok := w.balanceRep.FindByUserID(tx, order.UserID)
+			balance, ok := w.balanceRep.FindByUserID(ctx, tx, order.UserID)
 			if !ok {
 				return errors.New("user balance not found")
 			}
 
 			current := fields.Accrual + balance.Current
-			if err := w.balanceRep.UpdateByID(tx, balance.ID, current, balance.Withdrawn); err != nil {
+			if err := w.balanceRep.UpdateByID(ctx, tx, balance.ID, current, balance.Withdrawn); err != nil {
 				return fmt.Errorf("update user balance fail: %w", err)
 			}
 		}
 
-		if err := w.orderRep.AccrualByID(tx, fields.Accrual, status, order.ID); err != nil {
+		if err := w.orderRep.AccrualByID(ctx, tx, fields.Accrual, status, order.ID); err != nil {
 			return fmt.Errorf("update order accrual fail: %w", err)
 		}
 

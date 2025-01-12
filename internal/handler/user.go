@@ -41,7 +41,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := service.NewAuth(rep, u.conf).Authorize(user.Login, user.Password)
+	token, err := service.NewAuth(rep, u.conf).Authorize(r.Context(), user.Login, user.Password)
 	if err != nil {
 		u.log.Error("Register user handler authorize", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)

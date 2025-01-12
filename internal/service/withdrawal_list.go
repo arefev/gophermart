@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type WithdrawalGetter interface {
-	GetWithdrawalsByUserID(tx *sqlx.Tx, userID int) []model.Withdrawal
+	GetWithdrawalsByUserID(ctx context.Context, tx *sqlx.Tx, userID int) []model.Withdrawal
 }
 
 type WithdrawalList struct {
@@ -34,7 +35,7 @@ func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.Withdrawal, erro
 
 	var list []model.Withdrawal
 	err = db.Transaction(func(tx *sqlx.Tx) error {
-		list = wl.rep.GetWithdrawalsByUserID(tx, user.ID)
+		list = wl.rep.GetWithdrawalsByUserID(r.Context(), tx, user.ID)
 
 		return nil
 	})

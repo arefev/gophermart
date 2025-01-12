@@ -21,8 +21,8 @@ func NewBalance(log *zap.Logger) *Balance {
 	}
 }
 
-func (b *Balance) FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool) {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (b *Balance) FindByUserID(ctx context.Context, tx *sqlx.Tx, userID int) (*model.Balance, bool) {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	balance := model.Balance{}
@@ -38,8 +38,8 @@ func (b *Balance) FindByUserID(tx *sqlx.Tx, userID int) (*model.Balance, bool) {
 	return &balance, ok
 }
 
-func (b *Balance) UpdateByID(tx *sqlx.Tx, id int, current, withdrawn float64) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), timeCancel)
+func (b *Balance) UpdateByID(ctx context.Context, tx *sqlx.Tx, id int, current, withdrawn float64) error {
+	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
 	query := "UPDATE users_balance SET current = :current, withdrawn = :withdrawn WHERE id = :id"
