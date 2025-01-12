@@ -37,6 +37,8 @@ func Close() error {
 	if err := Connection().Close(); err != nil {
 		return fmt.Errorf("db close fail: %w", err)
 	}
+
+	connection.log.Info("db connection closed")
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -43,14 +44,20 @@ func NewWorker(log *zap.Logger, orderRep OrderNewFinder, balanceRep UserBalanceF
 	}
 }
 
-func (w *worker) Run() {
+func (w *worker) Run(ctx context.Context) error {
+	w.log.Info("Worker started")
+	
 	const interval = 2
 	checkTime := time.NewTicker(time.Duration(interval) * time.Second).C
 
-	for range checkTime {
-		fmt.Println("check time")
-		orders := w.getNewOrders()
-		w.checkOrders(*orders)
+	for {
+		select {
+		case <-ctx.Done():
+			w.log.Info("worker stopped")
+			return ctx.Err()
+		case <-checkTime:
+			w.checkOrders(*w.getNewOrders())
+		}
 	}
 }
 
@@ -124,7 +131,7 @@ func (w *worker) accrual(order *model.Order, fields *OrderResponse) error {
 		if err := w.orderRep.AccrualByID(tx, fields.Accrual, status, order.ID); err != nil {
 			return fmt.Errorf("update order accrual fail: %w", err)
 		}
-		
+
 		return nil
 	})
 
