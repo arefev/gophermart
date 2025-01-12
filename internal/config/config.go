@@ -8,19 +8,23 @@ import (
 )
 
 const (
-	address       string = "localhost:8080"
-	logLevel      string = "info"
-	databaseDSN   string = ""
-	tokenSecret   string = ""
-	tokenDuration int    = 60
+	address        string = "localhost:8081"
+	logLevel       string = "info"
+	databaseDSN    string = ""
+	tokenSecret    string = ""
+	accrualAddress string = "localhost:8082"
+	tokenDuration  int    = 60
+	pollInterval   int    = 2
 )
 
 type Config struct {
-	TokenSecret   string `env:"TOKEN_SECRET"`
-	Address       string `env:"ADDRESS"`
-	LogLevel      string `env:"LOG_LEVEL"`
-	DatabaseDSN   string `env:"DATABASE_DSN"`
-	TokenDuration int    `env:"TOKEN_DURATION"`
+	TokenSecret    string `env:"TOKEN_SECRET"`
+	Address        string `env:"ADDRESS"`
+	LogLevel       string `env:"LOG_LEVEL"`
+	DatabaseDSN    string `env:"DATABASE_DSN"`
+	AccrualAddress string `env:"ACCRUAL_ADDRESS"`
+	TokenDuration  int    `env:"TOKEN_DURATION"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
 func NewConfig(params []string) (Config, error) {
@@ -43,7 +47,9 @@ func (cnf *Config) initFlags(params []string) error {
 	f.StringVar(&cnf.LogLevel, "l", logLevel, "log level")
 	f.StringVar(&cnf.DatabaseDSN, "d", databaseDSN, "db connection string")
 	f.StringVar(&cnf.TokenSecret, "s", tokenSecret, "token secret")
+	f.StringVar(&cnf.AccrualAddress, "c", accrualAddress, "address and port accrual service")
 	f.IntVar(&cnf.TokenDuration, "t", tokenDuration, "token lifetime duration in minutes")
+	f.IntVar(&cnf.PollInterval, "i", pollInterval, "status poll interval in seconds")
 	if err := f.Parse(params); err != nil {
 		return fmt.Errorf("InitFlags: parse flags fail: %w", err)
 	}

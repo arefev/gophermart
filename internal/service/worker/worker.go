@@ -31,31 +31,35 @@ type OrderResponse struct {
 }
 
 type worker struct {
-	orderRep   OrderNewFinder
-	balanceRep UserBalanceFinder
-	log        *zap.Logger
+	orderRep       OrderNewFinder
+	balanceRep     UserBalanceFinder
+	log            *zap.Logger
+	accrualAddress string
+	pollInterval   int
 }
 
-func NewWorker(log *zap.Logger, orderRep OrderNewFinder, balanceRep UserBalanceFinder) *worker {
+func NewWorker(log *zap.Logger, pollInterval int, accrualAddress string,
+	orderRep OrderNewFinder, balanceRep UserBalanceFinder) *worker {
 	return &worker{
-		orderRep:   orderRep,
-		balanceRep: balanceRep,
-		log:        log,
+		orderRep:       orderRep,
+		balanceRep:     balanceRep,
+		log:            log,
+		pollInterval:   pollInterval,
+		accrualAddress: accrualAddress,
 	}
 }
 
 func (w *worker) Run(ctx context.Context) error {
 	w.log.Info("Worker started")
 
-	const interval = 2
-	checkTime := time.NewTicker(time.Duration(interval) * time.Second).C
+	pollTime := time.NewTicker(time.Duration(w.pollInterval) * time.Second).C
 
 	for {
 		select {
 		case <-ctx.Done():
 			w.log.Info("worker stopped")
-			return ctx.Err()
-		case <-checkTime:
+			return fmt.Errorf("worker stopped: %w", ctx.Err())
+		case <-pollTime:
 			w.checkOrders(ctx, *w.getNewOrders(ctx))
 		}
 	}
@@ -92,11 +96,12 @@ func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
 }
 
 func (w *worker) getStatus(number string) (*OrderResponse, error) {
+	url := "http://" + w.accrualAddress + "/api/orders/" + number
 	res := OrderResponse{}
 	client := resty.New()
 	response, err := client.R().
 		SetResult(&res).
-		Get("http://localhost:8082/api/orders/" + number)
+		Get(url)
 
 	if err != nil {
 		return nil, fmt.Errorf("check order status fail: %w", err)

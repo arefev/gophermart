@@ -21,7 +21,12 @@ server: server-run
 
 
 server-run: server-build
-	./cmd/gophermart/gophermart -d=${DATABASE_DSN} -a="${SERVER_ADDRESS}:${SERVER_PORT}" -l="${LOG_LEVEL}" -s="${TOKEN_SECRET}"
+	./cmd/gophermart/gophermart \
+		-d=${DATABASE_DSN} \
+		-a="${SERVER_ADDRESS}:${SERVER_PORT}" \
+		-l="${LOG_LEVEL}" \
+		-s="${TOKEN_SECRET}" \
+		-c="${ACCRUAL_HOST}:${ACCRUAL_PORT}"
 .PHONY: server-run
 
 

@@ -52,12 +52,11 @@ func run() error {
 
 	g, gCtx := errgroup.WithContext(mainCtx)
 
+	orderRep := repository.NewOrder(zLog)
+	balanceRep := repository.NewBalance(zLog)
 	zLog.Info("Worker starting...")
 	g.Go(func() error {
-		orderRep := repository.NewOrder(zLog)
-		balanceRep := repository.NewBalance(zLog)
-		worker.NewWorker(zLog, orderRep, balanceRep).Run(gCtx)
-		return nil
+		return worker.NewWorker(zLog, conf.PollInterval, conf.AccrualAddress, orderRep, balanceRep).Run(gCtx)
 	})
 
 	zLog.Info(
@@ -74,9 +73,7 @@ func run() error {
 		},
 	}
 
-	g.Go(func() error {
-		return server.ListenAndServe()
-	})
+	g.Go(server.ListenAndServe)
 
 	g.Go(func() error {
 		<-mainCtx.Done()
@@ -84,7 +81,7 @@ func run() error {
 	})
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("exit reason %w", err)
+		return fmt.Errorf("exit reason: %w", err)
 	}
 
 	return nil
