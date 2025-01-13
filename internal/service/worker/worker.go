@@ -31,21 +31,23 @@ type OrderResponse struct {
 }
 
 type worker struct {
-	orderRep       OrderNewFinder
-	balanceRep     UserBalanceFinder
-	log            *zap.Logger
-	accrualAddress string
-	pollInterval   int
+	nextPollingTime time.Time
+	orderRep        OrderNewFinder
+	balanceRep      UserBalanceFinder
+	log             *zap.Logger
+	accrualAddress  string
+	pollInterval    int
 }
 
 func NewWorker(log *zap.Logger, pollInterval int, accrualAddress string,
 	orderRep OrderNewFinder, balanceRep UserBalanceFinder) *worker {
 	return &worker{
-		orderRep:       orderRep,
-		balanceRep:     balanceRep,
-		log:            log,
-		pollInterval:   pollInterval,
-		accrualAddress: accrualAddress,
+		orderRep:        orderRep,
+		balanceRep:      balanceRep,
+		log:             log,
+		pollInterval:    pollInterval,
+		accrualAddress:  accrualAddress,
+		nextPollingTime: time.Now(),
 	}
 }
 
@@ -60,7 +62,11 @@ func (w *worker) Run(ctx context.Context) error {
 			w.log.Info("Worker stopped")
 			return fmt.Errorf("worker stopped: %w", ctx.Err())
 		case <-pollTime:
-			w.checkOrders(ctx, *w.getNewOrders(ctx))
+			if time.Since(w.nextPollingTime) >= 0 {
+				w.nextPollingTime = time.Now()
+				w.log.Info("Worker polling")
+				w.checkOrders(ctx, *w.getNewOrders(ctx))
+			}
 		}
 	}
 }
@@ -82,7 +88,13 @@ func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
 
 func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
 	for i := range orders {
-		response, err := w.getStatus(orders[i].Number)
+		response, wait, err := w.getStatus(ctx, orders[i].Number)
+		if wait > 0 {
+			w.log.Sugar().Infof("worker polling waiting %v", wait)
+			w.nextPollingTime = time.Now().Add(wait)
+			return
+		}
+
 		if err != nil {
 			w.log.Error("check order status fail", zap.Error(err))
 			continue
@@ -95,23 +107,35 @@ func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
 	}
 }
 
-func (w *worker) getStatus(number string) (*OrderResponse, error) {
+func (w *worker) getStatus(ctx context.Context, number string) (*OrderResponse, time.Duration, error) {
+	const waitTime = time.Duration(60) * time.Second
 	url := "http://" + w.accrualAddress + "/api/orders/" + number
 	res := OrderResponse{}
 	client := resty.New()
 	response, err := client.R().
 		SetResult(&res).
+		SetContext(ctx).
 		Get(url)
 
 	if err != nil {
-		return nil, fmt.Errorf("check order status fail: %w", err)
+		return nil, 0, fmt.Errorf("check order status fail: %w", err)
+	}
+
+	wait := time.Duration(0) * time.Second
+	if response.StatusCode() == http.StatusTooManyRequests {
+		r := response.Header().Get("Retry-After")
+		d, err := time.ParseDuration(r)
+		if err != nil {
+			d = waitTime
+		}
+		wait = d * time.Second
 	}
 
 	if response.StatusCode() != http.StatusOK {
 		res.Status = model.OrderStatusInvalid.String()
 	}
 
-	return &res, nil
+	return &res, wait, nil
 }
 
 func (w *worker) accrual(ctx context.Context, order *model.Order, fields *OrderResponse) error {
