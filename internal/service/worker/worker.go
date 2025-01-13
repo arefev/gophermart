@@ -122,7 +122,7 @@ func (w *worker) getStatus(ctx context.Context, number string) (*OrderResponse, 
 	}
 
 	wait := time.Duration(0) * time.Second
-	if response.StatusCode() != http.StatusTooManyRequests {
+	if response.StatusCode() == http.StatusTooManyRequests {
 		r := response.Header().Get("Retry-After")
 		d, err := time.ParseDuration(r + "s")
 		if err != nil {
