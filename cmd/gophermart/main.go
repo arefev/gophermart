@@ -15,7 +15,9 @@ import (
 	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
+	// "github.com/arefev/gophermart/internal/service"
 	"github.com/arefev/gophermart/internal/service/worker"
+	// "github.com/arefev/gophermart/internal/trm"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -49,6 +51,18 @@ func run() error {
 			zLog.Error("db close failed: %w", zap.Error(err))
 		}
 	}()
+
+	// db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
+	// if err != nil {
+	// 	return fmt.Errorf("run: db trm connect fail: %w", err)
+	// }
+
+	// tr := trm.NewTr(db.Connection())
+	// manager := trm.NewTrm(tr)
+	// userRep := repository.NewTrUser(tr, zLog)
+
+	
+	
 
 	g, gCtx := errgroup.WithContext(mainCtx)
 
