@@ -59,7 +59,7 @@ func (o *Order) Create(ctx context.Context, userID int, status model.OrderStatus
 	return nil
 }
 
-func (o *Order) List(ctx context.Context, userID int) []model.Order {
+func (o *Order) GetByUserID(ctx context.Context, userID int) []model.Order {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 

@@ -30,7 +30,7 @@ func (l *listAction) Handle(r *http.Request) ([]model.Order, error) {
 
 	var orders []model.Order
 	err = l.app.TrManager.Do(r.Context(), func(ctx context.Context) error {
-		orders = l.app.Rep.Order.List(ctx, user.ID)
+		orders = l.app.Rep.Order.GetByUserID(ctx, user.ID)
 
 		return nil
 	})
