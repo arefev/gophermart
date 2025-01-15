@@ -55,7 +55,7 @@ func (c *createAction) Handle(r *http.Request) error {
 }
 
 func (c *createAction) withdrawal(ctx context.Context, user *model.User, wr *CreateRequest) error {
-	balance, err := service.NewUserBalance(c.app).FindByUserID(ctx, user.ID)
+	balance, err := service.NewBalanceService(c.app).FindByUserID(ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("balance not found: %w", err)
 	}

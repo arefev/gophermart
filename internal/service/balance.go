@@ -10,21 +10,21 @@ import (
 	"github.com/arefev/gophermart/internal/trm"
 )
 
-type UserBalance struct {
+type balanceService struct {
 	app *application.App
 }
 
-func NewUserBalance(app *application.App) *UserBalance {
-	return &UserBalance{
+func NewBalanceService(app *application.App) *balanceService {
+	return &balanceService{
 		app: app,
 	}
 }
 
-func (ub *UserBalance) FindByUserID(ctx context.Context, userID int) (*model.Balance, error) {
+func (bs *balanceService) FindByUserID(ctx context.Context, userID int) (*model.Balance, error) {
 	var balance *model.Balance
 	var ok bool
-	err := ub.app.TrManager.Do(ctx, func(ctx context.Context) error {
-		balance, ok = ub.app.Rep.Balance.FindByUserID(ctx, userID)
+	err := bs.app.TrManager.Do(ctx, func(ctx context.Context) error {
+		balance, ok = bs.app.Rep.Balance.FindByUserID(ctx, userID)
 		if !ok {
 			return errors.New("user balance not found")
 		}

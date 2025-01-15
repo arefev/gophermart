@@ -25,7 +25,7 @@ func (b *balanceAction) Handle(r *http.Request) (*model.Balance, error) {
 		return nil, service.ErrUserNotAuthorized
 	}
 
-	balance, err := service.NewUserBalance(b.app).FindByUserID(r.Context(), user.ID)
+	balance, err := service.NewBalanceService(b.app).FindByUserID(r.Context(), user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("find balance from request fail: %w", err)
 	}
