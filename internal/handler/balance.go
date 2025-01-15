@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	b_action "github.com/arefev/gophermart/internal/action/balance"
+	w_action "github.com/arefev/gophermart/internal/action/withdrawal"
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
@@ -19,7 +21,7 @@ func NewBalance(app *application.App) *balance {
 }
 
 func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
-	balance, err := service.NewUserBalance(b.app).FromRequest(r)
+	balance, err := b_action.NewBalanceAction(b.app).Handle(r)
 
 	if err != nil {
 		b.app.Log.Error("Find balance handler", zap.Error(err))
@@ -35,13 +37,13 @@ func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
-	err := service.NewUserBalance(b.app).WithdrawalFromRequest(r)
+	err := w_action.NewCreateAction(b.app).Handle(r)
 
 	switch {
-	case errors.Is(err, service.ErrNotEnoughBalance):
+	case errors.Is(err, w_action.ErrNotEnoughBalance):
 		w.WriteHeader(http.StatusPaymentRequired)
 		return
-	case errors.Is(err, service.ErrValidationWithdrawal):
+	case errors.Is(err, w_action.ErrValidationWithdrawal):
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	case err != nil:
@@ -52,7 +54,7 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
-	list, err := service.NewWithdrawalList(b.app).FromRequest(r)
+	list, err := w_action.NewListAction(b.app).Handle(r)
 
 	switch {
 	case len(list) == 0:
