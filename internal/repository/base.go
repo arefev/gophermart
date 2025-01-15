@@ -38,14 +38,9 @@ func (b *Base) findWithArgs(
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	tr, err := b.tr.FromCtx(ctx)
+	stmt, err := b.prepare(ctx, query)
 	if err != nil {
-		return false, fmt.Errorf("find with args: from ctx fail: %w", err)
-	}
-
-	stmt, err := tr.PrepareNamedContext(ctx, query)
-	if err != nil {
-		return false, fmt.Errorf("find with args: prepare named context fail: %w", err)
+		return false, fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
 
 	defer func() {
@@ -73,14 +68,9 @@ func (b *Base) execWithArgs(
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	tr, err := b.tr.FromCtx(ctx)
+	stmt, err := b.prepare(ctx, query)
 	if err != nil {
-		return fmt.Errorf("find with args: from ctx fail: %w", err)
-	}
-
-	stmt, err := tr.PrepareNamedContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("exec with args: prepare named context fail: %w", err)
+		return fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
 
 	defer func() {
@@ -106,14 +96,9 @@ func (b *Base) getWithArgs(
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	tr, err := b.tr.FromCtx(ctx)
+	stmt, err := b.prepare(ctx, query)
 	if err != nil {
-		return fmt.Errorf("find with args: from ctx fail: %w", err)
-	}
-
-	stmt, err := tr.PrepareNamedContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("create with args: prepare named context fail: %w", err)
+		return fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
 
 	defer func() {
@@ -129,4 +114,18 @@ func (b *Base) getWithArgs(
 	}
 
 	return nil
+}
+
+func (b *Base) prepare(ctx context.Context, query string) (*sqlx.NamedStmt, error) {
+	tr, err := b.tr.FromCtx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("prepare from ctx fail: %w", err)
+	}
+
+	stmt, err := tr.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("prepare named context fail: %w", err)
+	}
+
+	return stmt, nil
 }
