@@ -4,25 +4,22 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
 type order struct {
-	log *zap.Logger
+	app *application.App
 }
 
-func NewOrder(log *zap.Logger) *order {
-	return &order{log: log}
+func NewOrder(app *application.App) *order {
+	return &order{app: app}
 }
 
 func (o *order) Create(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewOrder(o.log)
-	s := service.NewOrderCreate(rep)
-
-	err := s.FromRequest(r)
+	err := service.NewOrderCreate(o.app).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrOrderCreateValidateFail):
@@ -35,7 +32,7 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		return
 	case err != nil:
-		o.log.Error("Create order handler", zap.Error(err))
+		o.app.Log.Error("Create order handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -44,12 +41,10 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *order) List(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewOrder(o.log)
-	s := service.NewOrderList(rep)
-	orders, err := s.FromRequest(r)
+	orders, err := service.NewOrderList(o.app).FromRequest(r)
 
 	if err != nil {
-		o.log.Error("List orders handler", zap.Error(err))
+		o.app.Log.Error("List orders handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +55,7 @@ func (o *order) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := service.JSONResponse(w, response.NewOrders(orders)); err != nil {
-		o.log.Error("List orders handler", zap.Error(err))
+		o.app.Log.Error("List orders handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -14,7 +14,7 @@ type tr struct {
 }
 
 func NewTr(db *sqlx.DB) *tr {
-    return &tr{db: db}
+	return &tr{db: db}
 }
 
 func (tr *tr) Begin(ctx context.Context) (context.Context, error) {
@@ -45,7 +45,7 @@ func (tr *tr) Rollback(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("no transaction found in context")
 	}
-	
+
 	if err := tx.Rollback(); err != nil {
 		if !errors.Is(err, sql.ErrTxDone) {
 			return fmt.Errorf("transaction rollback fail: %w", err)
@@ -57,10 +57,9 @@ func (tr *tr) Rollback(ctx context.Context) error {
 
 func (tr *tr) FromCtx(ctx context.Context) (*sqlx.Tx, error) {
 	tx, ok := ctx.Value(sqlx.Tx{}).(*sqlx.Tx)
-    if !ok {
-        return nil, fmt.Errorf("tx not found in context")
-    }
+	if !ok {
+		return nil, fmt.Errorf("tx not found in context")
+	}
 
-    return tx, nil
+	return tx, nil
 }
-

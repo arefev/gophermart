@@ -5,24 +5,19 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/arefev/gophermart/internal/repository/db"
-	"github.com/jmoiron/sqlx"
 )
 
-type WithdrawalGetter interface {
-	GetWithdrawalsByUserID(ctx context.Context, tx *sqlx.Tx, userID int) []model.Withdrawal
-}
-
 type WithdrawalList struct {
-	rep  WithdrawalGetter
+	app  *application.App
 	list []model.Order
 }
 
-func NewWithdrawalList(rep WithdrawalGetter) *WithdrawalList {
+func NewWithdrawalList(app *application.App) *WithdrawalList {
 	return &WithdrawalList{
-		rep:  rep,
+		app:  app,
 		list: make([]model.Order, 0),
 	}
 }
@@ -34,8 +29,8 @@ func (wl *WithdrawalList) FromRequest(r *http.Request) ([]model.Withdrawal, erro
 	}
 
 	var list []model.Withdrawal
-	err = db.Transaction(func(tx *sqlx.Tx) error {
-		list = wl.rep.GetWithdrawalsByUserID(r.Context(), tx, user.ID)
+	err = wl.app.TrManager.Do(r.Context(), func(ctx context.Context) error {
+		list = wl.app.Rep.Order.GetWithdrawalsByUserID(ctx, user.ID)
 
 		return nil
 	})

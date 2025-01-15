@@ -4,27 +4,23 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/config"
-	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
 type user struct {
-	log  *zap.Logger
-	conf *config.Config
+	app *application.App
 }
 
-func NewUser(log *zap.Logger, conf *config.Config) *user {
+func NewUser(app *application.App) *user {
 	return &user{
-		log:  log,
-		conf: conf,
+		app: app,
 	}
 }
 
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewUser(u.log)
-	user, err := service.NewRegister(rep, u.conf).FromRequest(r)
+	user, err := service.NewRegister(u.app).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrRegisterUserExists):
@@ -34,14 +30,14 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:
-		u.log.Error("Register user handler", zap.Error(err))
+		u.app.Log.Error("Register user handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	token, err := service.NewAuth(rep, u.conf).Authorize(r.Context(), user.Login, user.Password)
+	token, err := service.NewAuth(u.app).Authorize(r.Context(), user.Login, user.Password)
 	if err != nil {
-		u.log.Error("Register user handler authorize", zap.Error(err))
+		u.app.Log.Error("Register user handler authorize", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -50,8 +46,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *user) Login(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewUser(u.log)
-	token, err := service.NewAuth(rep, u.conf).FromRequest(r)
+	token, err := service.NewAuth(u.app).FromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrAuthUserNotFound):
@@ -61,7 +56,7 @@ func (u *user) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	case err != nil:
-		u.log.Error("Login user handler", zap.Error(err))
+		u.app.Log.Error("Login user handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/config"
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/service/jwt"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,29 +20,23 @@ var (
 	ErrAuthValidateFail   = errors.New("validate fail")
 )
 
-type UserFinder interface {
-	FindByLogin(ctx context.Context, tx *sqlx.Tx, login string) (*model.User, bool)
-}
-
 type UserAuthRequest struct {
 	Login    string `json:"login" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
 type auth struct {
-	user UserFinder
-	conf *config.Config
+	app *application.App
 }
 
-func NewAuth(user UserFinder, conf *config.Config) *auth {
+func NewAuth(app *application.App) *auth {
 	return &auth{
-		user: user,
-		conf: conf,
+		app: app,
 	}
 }
 
 func (a *auth) FromRequest(req *http.Request) (*jwt.Token, error) {
-	rUser := UserCreateRequest{}
+	rUser := UserAuthRequest{}
 	d := json.NewDecoder(req.Body)
 
 	if err := d.Decode(&rUser); err != nil {
@@ -74,7 +66,7 @@ func (a *auth) Authorize(ctx context.Context, login, password string) (*jwt.Toke
 		return nil, ErrAuthUserNotFound
 	}
 
-	token, err := jwt.NewToken(a.conf.TokenSecret).GenerateToken(user, a.conf.TokenDuration)
+	token, err := jwt.NewToken(a.app.Conf.TokenSecret).GenerateToken(user, a.app.Conf.TokenDuration)
 	if err != nil {
 		return nil, fmt.Errorf("auth from request generate token fail: %w", err)
 	}
@@ -86,8 +78,8 @@ func (a *auth) GetUser(ctx context.Context, login string) (*model.User, error) {
 	var user *model.User
 	var ok bool
 
-	err := db.Transaction(func(tx *sqlx.Tx) error {
-		user, ok = a.user.FindByLogin(ctx, tx, login)
+	err := a.app.TrManager.Do(ctx, func(ctx context.Context) error {
+		user, ok = a.app.Rep.User.FindByLogin(ctx, login)
 
 		if !ok {
 			return ErrAuthUserNotFound

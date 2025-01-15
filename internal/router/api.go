@@ -3,20 +3,21 @@ package router
 import (
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/handler"
 	"github.com/arefev/gophermart/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func api(mw *middleware.Middleware) http.Handler {
+func api(app *application.App, mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chi_middleware.AllowContentType("application/json", "text/plain"))
 	r.Use(chi_middleware.SetHeader("Content-Type", "application/json"))
 
-	userHandler := handler.NewUser(mw.Log, mw.Conf)
-	orderHandler := handler.NewOrder(mw.Log)
-	balanceHandler := handler.NewBalance(mw.Log)
+	userHandler := handler.NewUser(app)
+	orderHandler := handler.NewOrder(app)
+	balanceHandler := handler.NewBalance(app)
 
 	r.Route("/user", func(r chi.Router) {
 		r.Post("/register", userHandler.Register)

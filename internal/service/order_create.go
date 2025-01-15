@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -21,39 +20,34 @@ var (
 	ErrOrderCreateValidateFail          = errors.New("validate fail")
 )
 
-type OrderCreator interface {
-	Create(ctx context.Context, tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error
-	FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*model.Order, bool)
-}
-
 type OrderCreateRequest struct {
 	Number string `json:"number" validate:"required,alphanum,gte=3,lte=50"`
 }
 
 type OrderCreate struct {
-	Rep OrderCreator
+	app *application.App
 }
 
-func NewOrderCreate(rep OrderCreator) *OrderCreate {
+func NewOrderCreate(app *application.App) *OrderCreate {
 	return &OrderCreate{
-		Rep: rep,
+		app: app,
 	}
 }
 
-func (ocr *OrderCreate) FromRequest(req *http.Request) error {
+func (ocr *OrderCreate) FromRequest(r *http.Request) error {
 	const errMsg = "order create from request:"
-	rOrder, err := ocr.validate(req)
+	rOrder, err := ocr.validate(r)
 	if err != nil {
 		return fmt.Errorf("%w %w", ErrOrderCreateValidateFail, err)
 	}
 
-	user, err := helper.UserWithContext(req.Context())
+	user, err := helper.UserWithContext(r.Context())
 	if err != nil {
 		return helper.ErrUserNotFound
 	}
 
-	err = db.Transaction(func(tx *sqlx.Tx) error {
-		order, ok := ocr.Rep.FindByNumber(req.Context(), tx, rOrder.Number)
+	err = ocr.app.TrManager.Do(r.Context(), func(ctx context.Context) error {
+		order, ok := ocr.app.Rep.Order.FindByNumber(ctx, rOrder.Number)
 		if ok {
 			if order.UserID == user.ID {
 				return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByCurrentUser)
@@ -62,7 +56,7 @@ func (ocr *OrderCreate) FromRequest(req *http.Request) error {
 			return fmt.Errorf("%s %w", errMsg, ErrOrderCreateUploadedByOtherUser)
 		}
 
-		if err := ocr.Rep.Create(req.Context(), tx, user.ID, model.OrderStatusNew, rOrder.Number); err != nil {
+		if err := ocr.app.Rep.Order.Create(ctx, user.ID, model.OrderStatusNew, rOrder.Number); err != nil {
 			return fmt.Errorf("%s create fail: %w", errMsg, err)
 		}
 

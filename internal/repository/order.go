@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -14,14 +13,14 @@ type Order struct {
 	*Base
 }
 
-func NewOrder(log *zap.Logger) *Order {
+func NewOrder(tr TxGetter, log *zap.Logger) *Order {
 	return &Order{
 		log:  log,
-		Base: NewBase(log),
+		Base: NewBase(tr, log),
 	}
 }
 
-func (o *Order) FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*model.Order, bool) {
+func (o *Order) FindByNumber(ctx context.Context, number string) (*model.Order, bool) {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -33,7 +32,7 @@ func (o *Order) FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*
 		WHERE number = :number
 	`
 
-	ok, err := o.findWithArgs(ctx, tx, args, query, &order)
+	ok, err := o.findWithArgs(ctx, args, query, &order)
 	if err != nil {
 		o.log.Debug("find by number: find with args fail: %w", zap.Error(err))
 		return nil, false
@@ -42,7 +41,7 @@ func (o *Order) FindByNumber(ctx context.Context, tx *sqlx.Tx, number string) (*
 	return &order, ok
 }
 
-func (o *Order) Create(ctx context.Context, tx *sqlx.Tx, userID int, status model.OrderStatus, number string) error {
+func (o *Order) Create(ctx context.Context, userID int, status model.OrderStatus, number string) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -53,14 +52,14 @@ func (o *Order) Create(ctx context.Context, tx *sqlx.Tx, userID int, status mode
 		"status":  status,
 	}
 
-	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
+	if err := o.execWithArgs(ctx, args, query); err != nil {
 		return fmt.Errorf("order create fail: %w", err)
 	}
 
 	return nil
 }
 
-func (o *Order) List(ctx context.Context, tx *sqlx.Tx, userID int) []model.Order {
+func (o *Order) List(ctx context.Context, userID int) []model.Order {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -75,7 +74,7 @@ func (o *Order) List(ctx context.Context, tx *sqlx.Tx, userID int) []model.Order
 		"user_id": userID,
 	}
 
-	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+	if err := o.getWithArgs(ctx, args, query, &list); err != nil {
 		o.log.Debug("order list fail: get with args fail", zap.Error(err))
 		return []model.Order{}
 	}
@@ -83,7 +82,7 @@ func (o *Order) List(ctx context.Context, tx *sqlx.Tx, userID int) []model.Order
 	return list
 }
 
-func (o *Order) WithStatusNew(ctx context.Context, tx *sqlx.Tx) []model.Order {
+func (o *Order) WithStatusNew(ctx context.Context) []model.Order {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -98,7 +97,7 @@ func (o *Order) WithStatusNew(ctx context.Context, tx *sqlx.Tx) []model.Order {
 		"status": model.OrderStatusNew,
 	}
 
-	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+	if err := o.getWithArgs(ctx, args, query, &list); err != nil {
 		o.log.Debug("with status new fail: get with args fail", zap.Error(err))
 		return []model.Order{}
 	}
@@ -106,7 +105,7 @@ func (o *Order) WithStatusNew(ctx context.Context, tx *sqlx.Tx) []model.Order {
 	return list
 }
 
-func (o *Order) AccrualByID(ctx context.Context, tx *sqlx.Tx, sum float64, status model.OrderStatus, id int) error {
+func (o *Order) AccrualByID(ctx context.Context, sum float64, status model.OrderStatus, id int) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -117,14 +116,14 @@ func (o *Order) AccrualByID(ctx context.Context, tx *sqlx.Tx, sum float64, statu
 		"status":  status,
 	}
 
-	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
+	if err := o.execWithArgs(ctx, args, query); err != nil {
 		return fmt.Errorf("accrual by id fail: %w", err)
 	}
 
 	return nil
 }
 
-func (o *Order) CreateWithdrawal(ctx context.Context, tx *sqlx.Tx, userID int, number string, sum float64) error {
+func (o *Order) CreateWithdrawal(ctx context.Context, userID int, number string, sum float64) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -135,14 +134,14 @@ func (o *Order) CreateWithdrawal(ctx context.Context, tx *sqlx.Tx, userID int, n
 		"sum":     sum,
 	}
 
-	if err := o.execWithArgs(ctx, tx, args, query); err != nil {
+	if err := o.execWithArgs(ctx, args, query); err != nil {
 		return fmt.Errorf("create fail: %w", err)
 	}
 
 	return nil
 }
 
-func (o *Order) GetWithdrawalsByUserID(ctx context.Context, tx *sqlx.Tx, userID int) []model.Withdrawal {
+func (o *Order) GetWithdrawalsByUserID(ctx context.Context, userID int) []model.Withdrawal {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
@@ -163,7 +162,7 @@ func (o *Order) GetWithdrawalsByUserID(ctx context.Context, tx *sqlx.Tx, userID 
 		"user_id": userID,
 	}
 
-	if err := o.getWithArgs(ctx, tx, args, query, &list); err != nil {
+	if err := o.getWithArgs(ctx, args, query, &list); err != nil {
 		o.log.Debug("get withdrawals by user id fail: get with args fail", zap.Error(err))
 		return []model.Withdrawal{}
 	}

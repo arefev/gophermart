@@ -10,14 +10,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/logger"
 	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
-	// "github.com/arefev/gophermart/internal/service"
-	"github.com/arefev/gophermart/internal/service/worker"
-	// "github.com/arefev/gophermart/internal/trm"
+	"github.com/arefev/gophermart/internal/trm"
+	"github.com/arefev/gophermart/internal/worker"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -52,25 +52,28 @@ func run() error {
 		}
 	}()
 
-	// db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
-	// if err != nil {
-	// 	return fmt.Errorf("run: db trm connect fail: %w", err)
-	// }
+	db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("run: db trm connect fail: %w", err)
+	}
 
-	// tr := trm.NewTr(db.Connection())
-	// manager := trm.NewTrm(tr)
-	// userRep := repository.NewTrUser(tr, zLog)
-
-	
-	
+	tr := trm.NewTr(db.Connection())
+	app := application.App{
+		Rep: application.Repository{
+			User:    repository.NewUser(tr, zLog),
+			Order:   repository.NewOrder(tr, zLog),
+			Balance: repository.NewBalance(tr, zLog),
+		},
+		TrManager: trm.NewTrm(tr),
+		Log:       zLog,
+		Conf:      &conf,
+	}
 
 	g, gCtx := errgroup.WithContext(mainCtx)
 
-	orderRep := repository.NewOrder(zLog)
-	balanceRep := repository.NewBalance(zLog)
 	zLog.Info("Worker starting...")
 	g.Go(func() error {
-		return worker.NewWorker(zLog, conf.PollInterval, conf.AccrualAddress, orderRep, balanceRep).Run(gCtx)
+		return worker.NewWorker(&app).Run(gCtx)
 	})
 
 	zLog.Info(
@@ -81,7 +84,7 @@ func run() error {
 
 	server := http.Server{
 		Addr:    conf.Address,
-		Handler: router.New(zLog, &conf),
+		Handler: router.New(&app),
 		BaseContext: func(_ net.Listener) context.Context {
 			return gCtx
 		},

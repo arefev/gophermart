@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -20,34 +20,19 @@ var (
 	ErrValidationWithdrawal = errors.New("validation withdrawal fail")
 )
 
-type UserBalanceFinder interface {
-	FindByUserID(ctx context.Context, tx *sqlx.Tx, userID int) (*model.Balance, bool)
-	UpdateByID(ctx context.Context, tx *sqlx.Tx, id int, current, withdrawn float64) error
-}
-
-type WithdrawarCreator interface {
-	CreateWithdrawal(ctx context.Context, tx *sqlx.Tx, userID int, number string, sum float64) error
-}
-
 type WithdrawalRequest struct {
 	Order string  `json:"order" validate:"required,alphanum,gte=3,lte=50"`
 	Sum   float64 `json:"sum" validate:"required"`
 }
 
 type UserBalance struct {
-	Rep           UserBalanceFinder
-	WithdrawalRep WithdrawarCreator
+	app *application.App
 }
 
-func NewUserBalance(rep UserBalanceFinder) *UserBalance {
+func NewUserBalance(app *application.App) *UserBalance {
 	return &UserBalance{
-		Rep: rep,
+		app: app,
 	}
-}
-
-func (ub *UserBalance) SetWithdrawalRep(rep WithdrawarCreator) *UserBalance {
-	ub.WithdrawalRep = rep
-	return ub
 }
 
 func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
@@ -67,8 +52,8 @@ func (ub *UserBalance) FromRequest(req *http.Request) (*model.Balance, error) {
 func (ub *UserBalance) FindByUserID(ctx context.Context, userID int) (*model.Balance, error) {
 	var balance *model.Balance
 	var ok bool
-	err := db.Transaction(func(tx *sqlx.Tx) error {
-		balance, ok = ub.Rep.FindByUserID(ctx, tx, userID)
+	err := ub.app.TrManager.Do(ctx, func(ctx context.Context) error {
+		balance, ok = ub.app.Rep.Balance.FindByUserID(ctx, userID)
 		if !ok {
 			return errors.New("user balance not found")
 		}
@@ -107,18 +92,18 @@ func (ub *UserBalance) Withdrawal(ctx context.Context, user *model.User, wr *Wit
 		return fmt.Errorf("balance not found: %w", err)
 	}
 
-	err = db.Transaction(func(tx *sqlx.Tx) error {
+	err = ub.app.TrManager.Do(ctx, func(ctx context.Context) error {
 		if balance.Current < wr.Sum {
 			return ErrNotEnoughBalance
 		}
 
 		current := balance.Current - wr.Sum
 		withdrawn := balance.Withdrawn + wr.Sum
-		if err := ub.Rep.UpdateByID(ctx, tx, balance.ID, current, withdrawn); err != nil {
+		if err := ub.app.Rep.Balance.UpdateByID(ctx, balance.ID, current, withdrawn); err != nil {
 			return fmt.Errorf("balance update fail: %w", err)
 		}
 
-		if err := ub.WithdrawalRep.CreateWithdrawal(ctx, tx, user.ID, wr.Order, wr.Sum); err != nil {
+		if err := ub.app.Rep.Order.CreateWithdrawal(ctx, user.ID, wr.Order, wr.Sum); err != nil {
 			return fmt.Errorf("create withdrawal fail: %w", err)
 		}
 

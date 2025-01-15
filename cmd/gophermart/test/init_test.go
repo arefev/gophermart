@@ -35,7 +35,6 @@ func TestMain(m *testing.M) {
 
 func TestPutEmployee(t *testing.T) {
 
-	
 }
 
 func initGetDSN(hostAndPort string) {
@@ -49,7 +48,6 @@ func initGetDSN(hostAndPort string) {
 		)
 	}
 }
-
 
 func initGetSUConnection(hostPort string) error {
 	host, port, err := getHostPort(hostPort)

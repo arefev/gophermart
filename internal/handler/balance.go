@@ -4,44 +4,38 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/repository"
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
 )
 
 type balance struct {
-	log *zap.Logger
+	app *application.App
 }
 
-func NewBalance(log *zap.Logger) *balance {
-	return &balance{log: log}
+func NewBalance(app *application.App) *balance {
+	return &balance{app: app}
 }
 
 func (b *balance) Find(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewBalance(b.log)
-	s := service.NewUserBalance(rep)
+	balance, err := service.NewUserBalance(b.app).FromRequest(r)
 
-	balance, err := s.FromRequest(r)
 	if err != nil {
-		b.log.Error("Find balance handler", zap.Error(err))
+		b.app.Log.Error("Find balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := service.JSONResponse(w, balance); err != nil {
-		b.log.Error("Find balance handler", zap.Error(err))
+		b.app.Log.Error("Find balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
 
 func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
-	bRep := repository.NewBalance(b.log)
-	oRep := repository.NewOrder(b.log)
-	s := service.NewUserBalance(bRep).SetWithdrawalRep(oRep)
-
-	err := s.WithdrawalFromRequest(r)
+	err := service.NewUserBalance(b.app).WithdrawalFromRequest(r)
 
 	switch {
 	case errors.Is(err, service.ErrNotEnoughBalance):
@@ -51,30 +45,27 @@ func (b *balance) Withdraw(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	case err != nil:
-		b.log.Error("Withdraw balance handler", zap.Error(err))
+		b.app.Log.Error("Withdraw balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
 
 func (b *balance) Withdrawals(w http.ResponseWriter, r *http.Request) {
-	rep := repository.NewOrder(b.log)
-	s := service.NewWithdrawalList(rep)
-
-	list, err := s.FromRequest(r)
+	list, err := service.NewWithdrawalList(b.app).FromRequest(r)
 
 	switch {
 	case len(list) == 0:
 		w.WriteHeader(http.StatusNoContent)
 		return
 	case err != nil:
-		b.log.Error("Withdrawals balance handler", zap.Error(err))
+		b.app.Log.Error("Withdrawals balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := service.JSONResponse(w, response.NewWithdrawals(list)); err != nil {
-		b.log.Error("Withdrawals balance handler", zap.Error(err))
+		b.app.Log.Error("Withdrawals balance handler", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

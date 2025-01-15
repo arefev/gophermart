@@ -13,17 +13,24 @@ import (
 
 const timeCancel = 15 * time.Second
 
-type Base struct {
-	log *zap.Logger
+type TxGetter interface {
+	FromCtx(context.Context) (*sqlx.Tx, error)
 }
 
-func NewBase(log *zap.Logger) *Base {
-	return &Base{log: log}
+type Base struct {
+	log *zap.Logger
+	tr  TxGetter
+}
+
+func NewBase(tr TxGetter, log *zap.Logger) *Base {
+	return &Base{
+		log: log,
+		tr:  tr,
+	}
 }
 
 func (b *Base) findWithArgs(
 	ctx context.Context,
-	tx *sqlx.Tx,
 	args map[string]any,
 	query string,
 	entity any,
@@ -31,7 +38,12 @@ func (b *Base) findWithArgs(
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := tx.PrepareNamedContext(ctx, query)
+	tr, err := b.tr.FromCtx(ctx)
+	if err != nil {
+		return false, fmt.Errorf("find with args: from ctx fail: %w", err)
+	}
+
+	stmt, err := tr.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return false, fmt.Errorf("find with args: prepare named context fail: %w", err)
 	}
@@ -55,14 +67,18 @@ func (b *Base) findWithArgs(
 
 func (b *Base) execWithArgs(
 	ctx context.Context,
-	tx *sqlx.Tx,
 	args map[string]any,
 	query string,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := tx.PrepareNamedContext(ctx, query)
+	tr, err := b.tr.FromCtx(ctx)
+	if err != nil {
+		return fmt.Errorf("find with args: from ctx fail: %w", err)
+	}
+
+	stmt, err := tr.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("exec with args: prepare named context fail: %w", err)
 	}
@@ -83,7 +99,6 @@ func (b *Base) execWithArgs(
 
 func (b *Base) getWithArgs(
 	ctx context.Context,
-	tx *sqlx.Tx,
 	args map[string]any,
 	query string,
 	list interface{},
@@ -91,7 +106,12 @@ func (b *Base) getWithArgs(
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := tx.PrepareNamedContext(ctx, query)
+	tr, err := b.tr.FromCtx(ctx)
+	if err != nil {
+		return fmt.Errorf("find with args: from ctx fail: %w", err)
+	}
+
+	stmt, err := tr.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("create with args: prepare named context fail: %w", err)
 	}

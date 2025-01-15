@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/arefev/gophermart/internal/config"
-	"github.com/arefev/gophermart/internal/repository/db"
+	"github.com/arefev/gophermart/internal/application"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,25 +18,18 @@ var (
 	ErrRegisterValidateFail   = errors.New("validate fail")
 )
 
-type UserCreator interface {
-	Exists(ctx context.Context, tx *sqlx.Tx, login string) bool
-	Create(ctx context.Context, tx *sqlx.Tx, login string, password string) error
-}
-
 type UserCreateRequest struct {
 	Login    string `json:"login" validate:"required,gte=1,lte=20,alphanum"`
 	Password string `json:"password" validate:"required,lte=40"`
 }
 
 type register struct {
-	user UserCreator
-	conf *config.Config
+	app *application.App
 }
 
-func NewRegister(user UserCreator, conf *config.Config) *register {
+func NewRegister(app *application.App) *register {
 	return &register{
-		user: user,
-		conf: conf,
+		app: app,
 	}
 }
 
@@ -63,8 +54,8 @@ func (r *register) FromRequest(req *http.Request) (*UserCreateRequest, error) {
 }
 
 func (r *register) Create(ctx context.Context, login string, password string) error {
-	err := db.Transaction(func(tx *sqlx.Tx) error {
-		if r.user.Exists(ctx, tx, login) {
+	err := r.app.TrManager.Do(ctx, func(ctx context.Context) error {
+		if r.app.Rep.User.Exists(ctx, login) {
 			return ErrRegisterUserExists
 		}
 
@@ -73,7 +64,7 @@ func (r *register) Create(ctx context.Context, login string, password string) er
 			return fmt.Errorf("encrypt password fail: %w", err)
 		}
 
-		if err := r.user.Create(ctx, tx, login, password); err != nil {
+		if err := r.app.Rep.User.Create(ctx, login, password); err != nil {
 			return fmt.Errorf("create user fail: %w", err)
 		}
 

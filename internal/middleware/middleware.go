@@ -1,18 +1,15 @@
 package middleware
 
 import (
-	"github.com/arefev/gophermart/internal/config"
-	"go.uber.org/zap"
+	"github.com/arefev/gophermart/internal/application"
 )
 
 type Middleware struct {
-	Log  *zap.Logger
-	Conf *config.Config
+	app *application.App
 }
 
-func NewMiddleware(log *zap.Logger, conf *config.Config) Middleware {
+func NewMiddleware(app *application.App) Middleware {
 	return Middleware{
-		Log:  log,
-		Conf: conf,
+		app: app,
 	}
 }

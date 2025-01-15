@@ -41,4 +41,3 @@ func (db *db) Close() error {
 	db.log.Info("db connection closed")
 	return nil
 }
-
