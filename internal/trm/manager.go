@@ -3,6 +3,8 @@ package trm
 import (
 	"context"
 	"fmt"
+
+	"go.uber.org/zap"
 )
 
 type TrAction func(context.Context) error
@@ -14,11 +16,15 @@ type Transaction interface {
 }
 
 type trm struct {
-	tr Transaction
+	tr  Transaction
+	log *zap.Logger
 }
 
-func NewTrm(tr Transaction) *trm {
-	return &trm{tr: tr}
+func NewTrm(tr Transaction, log *zap.Logger) *trm {
+	return &trm{
+		tr:  tr,
+		log: log,
+	}
 }
 
 func (trm *trm) Do(ctx context.Context, action TrAction) error {
@@ -30,7 +36,7 @@ func (trm *trm) Do(ctx context.Context, action TrAction) error {
 
 	defer func() {
 		if err := trm.tr.Rollback(ctx); err != nil {
-			// TODO: handle error
+			trm.log.Error("trm rollback fail", zap.Error(err))
 		}
 	}()
 

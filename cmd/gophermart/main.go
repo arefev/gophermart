@@ -60,7 +60,7 @@ func run() error {
 			Order:   repository.NewOrder(tr, zLog),
 			Balance: repository.NewBalance(tr, zLog),
 		},
-		TrManager: trm.NewTrm(tr),
+		TrManager: trm.NewTrm(tr, zLog),
 		Log:       zLog,
 		Conf:      &conf,
 	}

@@ -9,7 +9,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var ErrTransactionFail = errors.New("transaction fail")
+var (
+	ErrTransactionFail          = errors.New("transaction fail")
+	ErrTransactionNotFoundInCtx = errors.New("transaction not found in context")
+)
 
 type tr struct {
 	db *sqlx.DB
@@ -31,7 +34,7 @@ func (tr *tr) Begin(ctx context.Context) (context.Context, error) {
 func (tr *tr) Commit(ctx context.Context) error {
 	tx, ok := ctx.Value(sqlx.Tx{}).(*sqlx.Tx)
 	if !ok {
-		return fmt.Errorf("no transaction found in context")
+		return ErrTransactionNotFoundInCtx
 	}
 
 	err := tx.Commit()
@@ -45,7 +48,7 @@ func (tr *tr) Commit(ctx context.Context) error {
 func (tr *tr) Rollback(ctx context.Context) error {
 	tx, ok := ctx.Value(sqlx.Tx{}).(*sqlx.Tx)
 	if !ok {
-		return fmt.Errorf("no transaction found in context")
+		return ErrTransactionNotFoundInCtx
 	}
 
 	if err := tx.Rollback(); err != nil {
@@ -60,7 +63,7 @@ func (tr *tr) Rollback(ctx context.Context) error {
 func (tr *tr) FromCtx(ctx context.Context) (*sqlx.Tx, error) {
 	tx, ok := ctx.Value(sqlx.Tx{}).(*sqlx.Tx)
 	if !ok {
-		return nil, fmt.Errorf("tx not found in context")
+		return nil, ErrTransactionNotFoundInCtx
 	}
 
 	return tx, nil
