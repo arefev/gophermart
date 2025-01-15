@@ -1,8 +1,6 @@
-package helper
+package alg
 
-import (
-	"errors"
-)
+import "errors"
 
 func CheckLuhn(number string) error {
 	const numForParity = 2

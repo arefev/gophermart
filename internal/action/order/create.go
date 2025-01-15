@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/arefev/gophermart/internal/application"
-	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/service"
+	"github.com/arefev/gophermart/internal/service/alg"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -81,7 +81,7 @@ func (c *createAction) validate(r *http.Request) (*OrderCreateRequest, error) {
 		Number: strings.Trim(string(number), " "),
 	}
 
-	if err := helper.CheckLuhn(rOrder.Number); err != nil {
+	if err := alg.CheckLuhn(rOrder.Number); err != nil {
 		return nil, fmt.Errorf("luhn check fail: %w", err)
 	}
 

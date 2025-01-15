@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	"github.com/arefev/gophermart/internal/application"
-	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/service"
+	"github.com/arefev/gophermart/internal/service/alg"
 	"github.com/arefev/gophermart/internal/trm"
 	"github.com/go-playground/validator/v10"
 )
@@ -93,7 +93,7 @@ func (c *createAction) validate(r *http.Request) (*CreateRequest, error) {
 		return nil, fmt.Errorf("decode json body fail: %w", err)
 	}
 
-	if err := helper.CheckLuhn(rOrder.Order); err != nil {
+	if err := alg.CheckLuhn(rOrder.Order); err != nil {
 		return nil, fmt.Errorf("luhn check fail: %w", err)
 	}
 
