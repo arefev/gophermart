@@ -10,7 +10,7 @@ import (
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/helper"
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/arefev/gophermart/internal/repository/db"
+	"github.com/arefev/gophermart/internal/trm"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -62,7 +62,7 @@ func (ub *UserBalance) FindByUserID(ctx context.Context, userID int) (*model.Bal
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("find by user id %w: %w", db.ErrTransactionFail, err)
+		return nil, fmt.Errorf("find by user id %w: %w", trm.ErrTransactionFail, err)
 	}
 
 	return balance, nil
@@ -111,7 +111,7 @@ func (ub *UserBalance) Withdrawal(ctx context.Context, user *model.User, wr *Wit
 	})
 
 	if err != nil {
-		return fmt.Errorf("withdrawal %w: %w", db.ErrTransactionFail, err)
+		return fmt.Errorf("withdrawal %w: %w", trm.ErrTransactionFail, err)
 	}
 
 	return nil

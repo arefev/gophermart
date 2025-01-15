@@ -14,7 +14,6 @@ import (
 	"github.com/arefev/gophermart/internal/config"
 	"github.com/arefev/gophermart/internal/logger"
 	"github.com/arefev/gophermart/internal/repository"
-	"github.com/arefev/gophermart/internal/repository/db"
 	"github.com/arefev/gophermart/internal/router"
 	"github.com/arefev/gophermart/internal/trm"
 	"github.com/arefev/gophermart/internal/worker"
@@ -42,8 +41,9 @@ func run() error {
 		return fmt.Errorf("run: init logger fail: %w", err)
 	}
 
-	if err := db.Connect(conf.DatabaseDSN, zLog); err != nil {
-		return fmt.Errorf("run: db connect fail: %w", err)
+	db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("run: db trm connect fail: %w", err)
 	}
 
 	defer func() {
@@ -51,11 +51,6 @@ func run() error {
 			zLog.Error("db close failed: %w", zap.Error(err))
 		}
 	}()
-
-	db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
-	if err != nil {
-		return fmt.Errorf("run: db trm connect fail: %w", err)
-	}
 
 	tr := trm.NewTr(db.Connection())
 	app := application.App{

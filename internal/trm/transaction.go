@@ -9,6 +9,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var ErrTransactionFail = errors.New("transaction fail")
+
 type tr struct {
 	db *sqlx.DB
 }
