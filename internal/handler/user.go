@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	action "github.com/arefev/gophermart/internal/action/user"
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/service"
 	"go.uber.org/zap"
@@ -20,7 +21,7 @@ func NewUser(app *application.App) *user {
 }
 
 func (u *user) Register(w http.ResponseWriter, r *http.Request) {
-	user, err := service.NewRegister(u.app).FromRequest(r)
+	user, err := action.NewRegisterAction(u.app).Handle(r)
 
 	switch {
 	case errors.Is(err, service.ErrRegisterUserExists):
@@ -35,7 +36,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := service.NewAuth(u.app).Authorize(r.Context(), user.Login, user.Password)
+	token, err := service.NewUserService(u.app).Authorize(r.Context(), user.Login, user.Password)
 	if err != nil {
 		u.app.Log.Error("Register user handler authorize", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
@@ -46,7 +47,7 @@ func (u *user) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *user) Login(w http.ResponseWriter, r *http.Request) {
-	token, err := service.NewAuth(u.app).FromRequest(r)
+	token, err := action.NewAuthAction(u.app).Handle(r)
 
 	switch {
 	case errors.Is(err, service.ErrAuthUserNotFound):

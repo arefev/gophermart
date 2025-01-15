@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	action "github.com/arefev/gophermart/internal/action/order"
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/response"
 	"github.com/arefev/gophermart/internal/service"
@@ -19,16 +20,16 @@ func NewOrder(app *application.App) *order {
 }
 
 func (o *order) Create(w http.ResponseWriter, r *http.Request) {
-	err := service.NewOrderCreate(o.app).FromRequest(r)
+	err := action.NewCreateAction(o.app).Handle(r)
 
 	switch {
-	case errors.Is(err, service.ErrOrderCreateValidateFail):
+	case errors.Is(err, action.ErrOrderCreateValidateFail):
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
-	case errors.Is(err, service.ErrOrderCreateUploadedByCurrentUser):
+	case errors.Is(err, action.ErrOrderCreateUploadedByCurrentUser):
 		w.WriteHeader(http.StatusOK)
 		return
-	case errors.Is(err, service.ErrOrderCreateUploadedByOtherUser):
+	case errors.Is(err, action.ErrOrderCreateUploadedByOtherUser):
 		w.WriteHeader(http.StatusConflict)
 		return
 	case err != nil:
@@ -41,7 +42,7 @@ func (o *order) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *order) List(w http.ResponseWriter, r *http.Request) {
-	orders, err := service.NewOrderList(o.app).FromRequest(r)
+	orders, err := action.NewListAction(o.app).Handle(r)
 
 	if err != nil {
 		o.app.Log.Error("List orders handler", zap.Error(err))

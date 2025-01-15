@@ -50,7 +50,7 @@ func (m *Middleware) Authorized(next http.Handler) http.Handler {
 func (m *Middleware) getUser(ctx context.Context, login string) (*model.User, error) {
 	var user *model.User
 
-	user, err := service.NewAuth(m.app).GetUser(ctx, login)
+	user, err := service.NewUserService(m.app).GetUser(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("get user fail: %w", err)
 	}
