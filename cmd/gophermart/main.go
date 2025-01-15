@@ -12,6 +12,7 @@ import (
 
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/config"
+	"github.com/arefev/gophermart/internal/db/postgresql"
 	"github.com/arefev/gophermart/internal/logger"
 	"github.com/arefev/gophermart/internal/repository"
 	"github.com/arefev/gophermart/internal/router"
@@ -41,7 +42,7 @@ func run() error {
 		return fmt.Errorf("run: init logger fail: %w", err)
 	}
 
-	db, err := trm.NewDB(zLog).Connect(conf.DatabaseDSN)
+	db, err := postgresql.NewDB(zLog).Connect(conf.DatabaseDSN)
 	if err != nil {
 		return fmt.Errorf("run: db trm connect fail: %w", err)
 	}

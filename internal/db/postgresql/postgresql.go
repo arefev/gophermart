@@ -1,4 +1,4 @@
-package trm
+package postgresql
 
 import (
 	"fmt"
