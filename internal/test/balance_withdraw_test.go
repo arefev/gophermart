@@ -217,3 +217,84 @@ func TestBalanceWithdrawStatusPayment(t *testing.T) {
 		require.Equal(t, http.StatusPaymentRequired, resp.StatusCode())
 	})
 }
+
+func TestBalanceWithdrawStatusUnprocessable(t *testing.T) {
+	t.Run("balance withdraw status unprocessable", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		conf := config.Config{
+			TokenSecret:   gofakeit.DigitN(10),
+			LogLevel:      "debug",
+			TokenDuration: 5,
+		}
+
+		zLog, err := logger.Build(conf.LogLevel)
+		require.NoError(t, err)
+
+		pwd := gofakeit.Password(true, true, true, true, false, 10)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
+
+		user := model.User{
+			ID:       1,
+			Login:    gofakeit.Username(),
+			Password: pwdHash,
+		}
+
+		number := "45031620082273"
+
+		tr := mock_trm.NewMockTransaction(ctrl)
+		trManager := trm.NewTrm(tr, zLog)
+		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
+
+		userRepo := mock_application.NewMockUserRepo(ctrl)
+		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
+
+		app := application.App{
+			Rep: application.Repository{
+				User: userRepo,
+			},
+			TrManager: trManager,
+			Log:       zLog,
+			Conf:      &conf,
+		}
+
+		r := router.New(&app)
+		srv := httptest.NewServer(r)
+		defer srv.Close()
+
+		body := `{
+			"login": "` + user.Login + `",
+			"password": "` + pwd + `"
+		}`
+
+		resp, err := resty.New().
+			R().
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/login")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.Contains(t, hAuth, "Bearer ")
+
+		body = `{
+			"order": "` + number + `"
+		}`
+
+		resp, err = resty.New().
+			R().
+			SetHeader("Authorization", hAuth).
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/balance/withdraw")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode())
+	})
+}
