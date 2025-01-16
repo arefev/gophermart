@@ -41,7 +41,7 @@ server-build-cover:
 
 
 accrual:
-	./cmd/accrual/accrual -a=${ACCRUAL_HOST}:${ACCRUAL_PORT}
+	./cmd/accrual/accrual_linux_amd64 -a=${ACCRUAL_HOST}:${ACCRUAL_PORT}
 .PHONY: accrual
 
 
