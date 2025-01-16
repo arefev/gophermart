@@ -48,5 +48,4 @@ func TestOrderStatusFromString(t *testing.T) {
 			require.Equal(t, status, tt.want.status)
 		})
 	}
-
 }

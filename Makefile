@@ -79,9 +79,11 @@ integration-test: test-clear
 		-accrual-port=${ACCRUAL_PORT} > ./test_report.txt
 .PHONY: integration-test
 
+
 test-clear: 
 	rm -f coverage.out && rm -f test_report.txt && rm -f test.html
 .PHONY: test-clear
+
 
 golangci-lint-run: _golangci-lint-rm-unformatted-report
 .PHONY: golangci-lint-run
