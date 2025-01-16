@@ -102,8 +102,8 @@ func TestOrderCreateSuccess(t *testing.T) {
 	})
 }
 
-func TestOrderCreateStatusBadRequest(t *testing.T) {
-	t.Run("order create status bad request", func(t *testing.T) {
+func TestOrderCreateStatusUnprocessable(t *testing.T) {
+	t.Run("order create status unprocessable", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
