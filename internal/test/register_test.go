@@ -35,7 +35,8 @@ func TestUserRegisterSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),
@@ -99,7 +100,8 @@ func TestUserRegisterStatusConflict(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),
@@ -163,7 +165,8 @@ func TestUserRegisterStatusBadRequest(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),

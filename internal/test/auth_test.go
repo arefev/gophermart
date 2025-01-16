@@ -35,7 +35,8 @@ func TestUserAuthSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),
@@ -98,7 +99,8 @@ func TestUserAuthStatusUnauth(t *testing.T) {
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
 		otherPwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),
@@ -160,7 +162,8 @@ func TestUserAuthStatusBadRequest(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			Login:    gofakeit.Username(),

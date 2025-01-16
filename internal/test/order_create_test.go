@@ -36,7 +36,8 @@ func TestOrderCreateSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			ID:       1,
@@ -117,7 +118,8 @@ func TestOrderCreateStatusUnprocessable(t *testing.T) {
 		require.NoError(t, err)
 
 		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
 
 		user := model.User{
 			ID:       1,
