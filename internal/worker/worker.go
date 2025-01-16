@@ -49,10 +49,14 @@ func (w *worker) Run(ctx context.Context) error {
 			if time.Since(w.nextPollingTime) >= 0 {
 				w.nextPollingTime = time.Now()
 				w.app.Log.Info("Worker polling")
-				w.checkOrders(ctx, *w.getNewOrders(ctx))
+				w.Handle(ctx)
 			}
 		}
 	}
+}
+
+func (w *worker) Handle(ctx context.Context) {
+	w.checkOrders(ctx, *w.getNewOrders(ctx))
 }
 
 func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
