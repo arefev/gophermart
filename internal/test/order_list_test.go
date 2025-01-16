@@ -105,6 +105,7 @@ func TestOrderListSuccess(t *testing.T) {
 
 		json := string(resp.Body())
 		require.Contains(t, json, `"number":"1"`)
+		require.Contains(t, json, `"status":"INVALID"`)
 	})
 }
 
