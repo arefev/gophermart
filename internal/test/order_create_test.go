@@ -215,3 +215,175 @@ func TestOrderCreateStatusUnAuthorized(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, resp.StatusCode())
 	})
 }
+
+func TestOrderCreateStatusOk(t *testing.T) {
+	t.Run("order create status ok", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		conf := config.Config{
+			TokenSecret:   gofakeit.DigitN(10),
+			LogLevel:      "debug",
+			TokenDuration: 5,
+		}
+
+		zLog, err := logger.Build(conf.LogLevel)
+		require.NoError(t, err)
+
+		pwd := gofakeit.Password(true, true, true, true, false, 10)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
+
+		user := model.User{
+			ID:       1,
+			Login:    gofakeit.Username(),
+			Password: pwdHash,
+		}
+
+		orderNumber := "45031620082273"
+		order := &model.Order{
+			Number: orderNumber,
+			UserID: user.ID,
+		}
+
+		tr := mock_trm.NewMockTransaction(ctrl)
+		trManager := trm.NewTrm(tr, zLog)
+		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
+
+		userRepo := mock_application.NewMockUserRepo(ctrl)
+		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
+
+		orderRepo := mock_application.NewMockOrderRepo(ctrl)
+		orderRepo.EXPECT().FindByNumber(gomock.Any(), orderNumber).Return(order, true).MaxTimes(1)
+		orderRepo.EXPECT().Create(gomock.Any(), user.ID, model.OrderStatusNew, orderNumber).Return(nil).MaxTimes(0)
+
+		app := application.App{
+			Rep: application.Repository{
+				User:  userRepo,
+				Order: orderRepo,
+			},
+			TrManager: trManager,
+			Log:       zLog,
+			Conf:      &conf,
+		}
+
+		r := router.New(&app)
+		srv := httptest.NewServer(r)
+		defer srv.Close()
+
+		body := `{
+			"login": "` + user.Login + `",
+			"password": "` + pwd + `"
+		}`
+
+		resp, err := resty.New().
+			R().
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/login")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.Contains(t, hAuth, "Bearer ")
+
+		resp, err = resty.New().
+			R().
+			SetHeader("Content-type", "text/plain").
+			SetHeader("Authorization", hAuth).
+			SetBody(orderNumber).
+			Post(srv.URL + "/api/user/orders")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	})
+}
+
+func TestOrderCreateStatusConflict(t *testing.T) {
+	t.Run("order create status conflict", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		conf := config.Config{
+			TokenSecret:   gofakeit.DigitN(10),
+			LogLevel:      "debug",
+			TokenDuration: 5,
+		}
+
+		zLog, err := logger.Build(conf.LogLevel)
+		require.NoError(t, err)
+
+		pwd := gofakeit.Password(true, true, true, true, false, 10)
+		pwdHash, err := password.Encrypt(pwd)
+		require.NoError(t, err)
+
+		user := model.User{
+			ID:       1,
+			Login:    gofakeit.Username(),
+			Password: pwdHash,
+		}
+
+		orderNumber := "45031620082273"
+		order := &model.Order{
+			Number: orderNumber,
+			UserID: 2,
+		}
+
+		tr := mock_trm.NewMockTransaction(ctrl)
+		trManager := trm.NewTrm(tr, zLog)
+		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
+
+		userRepo := mock_application.NewMockUserRepo(ctrl)
+		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
+
+		orderRepo := mock_application.NewMockOrderRepo(ctrl)
+		orderRepo.EXPECT().FindByNumber(gomock.Any(), orderNumber).Return(order, true).MaxTimes(1)
+		orderRepo.EXPECT().Create(gomock.Any(), user.ID, model.OrderStatusNew, orderNumber).Return(nil).MaxTimes(0)
+
+		app := application.App{
+			Rep: application.Repository{
+				User:  userRepo,
+				Order: orderRepo,
+			},
+			TrManager: trManager,
+			Log:       zLog,
+			Conf:      &conf,
+		}
+
+		r := router.New(&app)
+		srv := httptest.NewServer(r)
+		defer srv.Close()
+
+		body := `{
+			"login": "` + user.Login + `",
+			"password": "` + pwd + `"
+		}`
+
+		resp, err := resty.New().
+			R().
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/login")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.Contains(t, hAuth, "Bearer ")
+
+		resp, err = resty.New().
+			R().
+			SetHeader("Content-type", "text/plain").
+			SetHeader("Authorization", hAuth).
+			SetBody(orderNumber).
+			Post(srv.URL + "/api/user/orders")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusConflict, resp.StatusCode())
+	})
+}
