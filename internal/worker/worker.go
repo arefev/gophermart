@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/model"
-	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 )
+
+type StatusRequest interface {
+	Request(ctx context.Context, number string, res *OrderResponse) (time.Duration, error)
+}
 
 type OrderResponse struct {
 	Order   string  `json:"order"`
@@ -22,12 +24,14 @@ type OrderResponse struct {
 type worker struct {
 	nextPollingTime time.Time
 	app             *application.App
+	request         StatusRequest
 }
 
-func NewWorker(rep *application.App) *worker {
+func NewWorker(app *application.App, r StatusRequest) *worker {
 	return &worker{
-		app:             rep,
+		app:             app,
 		nextPollingTime: time.Now(),
+		request:         r,
 	}
 }
 
@@ -88,31 +92,10 @@ func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
 }
 
 func (w *worker) getStatus(ctx context.Context, number string) (*OrderResponse, time.Duration, error) {
-	const waitTime = time.Duration(60) * time.Second
-	url := "http://" + w.app.Conf.AccrualAddress + "/api/orders/" + number
 	res := OrderResponse{}
-	client := resty.New()
-	response, err := client.R().
-		SetResult(&res).
-		SetContext(ctx).
-		Get(url)
-
+	wait, err := w.request.Request(ctx, number, &res)
 	if err != nil {
-		return nil, 0, fmt.Errorf("check order status fail: %w", err)
-	}
-
-	wait := time.Duration(0) * time.Second
-	if response.StatusCode() == http.StatusTooManyRequests {
-		r := response.Header().Get("Retry-After")
-		d, err := time.ParseDuration(r + "s")
-		if err != nil {
-			d = waitTime
-		}
-		wait = d
-	}
-
-	if response.StatusCode() != http.StatusOK {
-		res.Status = model.OrderStatusInvalid.String()
+		return nil, 0, fmt.Errorf("get status fail: %w", err)
 	}
 
 	return &res, wait, nil

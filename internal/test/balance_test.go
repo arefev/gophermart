@@ -46,9 +46,9 @@ func TestBalanceSuccess(t *testing.T) {
 		}
 
 		balance := model.Balance{
-			UserID: user.ID,
-            Current: gofakeit.Float64(),
-            Withdrawn: gofakeit.Float64(),
+			UserID:    user.ID,
+			Current:   gofakeit.Float64(),
+			Withdrawn: gofakeit.Float64(),
 		}
 
 		tr := mock_trm.NewMockTransaction(ctrl)
@@ -65,7 +65,7 @@ func TestBalanceSuccess(t *testing.T) {
 
 		app := application.App{
 			Rep: application.Repository{
-				User:  userRepo,
+				User:    userRepo,
 				Balance: balanceRepo,
 			},
 			TrManager: trManager,

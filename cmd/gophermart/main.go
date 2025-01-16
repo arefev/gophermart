@@ -69,7 +69,8 @@ func run() error {
 
 	zLog.Info("Worker starting...")
 	g.Go(func() error {
-		return worker.NewWorker(&app).Run(gCtx)
+		wRequest := worker.NewRequest(conf.AccrualAddress)
+		return worker.NewWorker(&app, wRequest).Run(gCtx)
 	})
 
 	zLog.Info(
