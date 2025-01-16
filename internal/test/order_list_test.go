@@ -45,8 +45,10 @@ func TestOrderListSuccess(t *testing.T) {
 		}
 
 		orders := []model.Order{
-			{ID: 1, UserID: user.ID, Number: "1"},
-			{ID: 2, UserID: user.ID, Number: "2"},
+			{ID: 1, UserID: user.ID, Number: "1", Status: model.OrderStatusNew},
+			{ID: 2, UserID: user.ID, Number: "2", Status: model.OrderStatusProcessed},
+			{ID: 3, UserID: user.ID, Number: "3", Status: model.OrderStatusInvalid},
+			{ID: 4, UserID: user.ID, Number: "4", Status: model.OrderStatusProcessing},
 		}
 
 		tr := mock_trm.NewMockTransaction(ctrl)
