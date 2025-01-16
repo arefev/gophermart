@@ -8,7 +8,7 @@ import (
 	"github.com/arefev/gophermart/internal/application"
 	"github.com/arefev/gophermart/internal/model"
 	"github.com/arefev/gophermart/internal/service/jwt"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/arefev/gophermart/internal/service/password"
 )
 
 var (
@@ -31,18 +31,18 @@ func NewUserService(app *application.App) *userService {
 	}
 }
 
-func (us *userService) Create(ctx context.Context, login string, password string) error {
+func (us *userService) Create(ctx context.Context, login string, pwd string) error {
 	err := us.app.TrManager.Do(ctx, func(ctx context.Context) error {
 		if us.app.Rep.User.Exists(ctx, login) {
 			return ErrRegisterUserExists
 		}
 
-		password, err := us.encryptPassword(password)
+		pwdHash, err := password.Encrypt(pwd)
 		if err != nil {
 			return fmt.Errorf("encrypt password fail: %w", err)
 		}
 
-		if err := us.app.Rep.User.Create(ctx, login, password); err != nil {
+		if err := us.app.Rep.User.Create(ctx, login, pwdHash); err != nil {
 			return fmt.Errorf("create user fail: %w", err)
 		}
 
@@ -56,13 +56,13 @@ func (us *userService) Create(ctx context.Context, login string, password string
 	return nil
 }
 
-func (us *userService) Authorize(ctx context.Context, login, password string) (*jwt.Token, error) {
+func (us *userService) Authorize(ctx context.Context, login, pwd string) (*jwt.Token, error) {
 	user, err := us.GetUser(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("authorize get user fail: %w", err)
 	}
 
-	if !us.checkPassword(user, password) {
+	if !password.Check(user.Password, pwd) {
 		return nil, ErrAuthUserNotFound
 	}
 
@@ -80,7 +80,6 @@ func (us *userService) GetUser(ctx context.Context, login string) (*model.User, 
 
 	err := us.app.TrManager.Do(ctx, func(ctx context.Context) error {
 		user, ok = us.app.Rep.User.FindByLogin(ctx, login)
-
 		if !ok {
 			return ErrAuthUserNotFound
 		}
@@ -103,18 +102,4 @@ func (us *userService) Authorized(ctx context.Context) (*model.User, error) {
 	}
 
 	return user, nil
-}
-
-func (us *userService) encryptPassword(password string) (string, error) {
-	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("register encrypt password fail: %w", err)
-	}
-
-	return string(passHash), nil
-}
-
-func (us *userService) checkPassword(user *model.User, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	return err == nil
 }
