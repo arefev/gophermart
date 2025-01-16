@@ -56,9 +56,7 @@ func TestWorkerSuccess(t *testing.T) {
 			Status: model.OrderStatusNew,
 		}
 
-		newOrders := []model.Order{
-			order,
-		}
+		newOrders := []model.Order{order}
 
 		newCurrent := balance.Current + accrual
 		newStatus := model.OrderStatusProcessed
@@ -74,8 +72,8 @@ func TestWorkerSuccess(t *testing.T) {
 		balanceRepo.EXPECT().UpdateByID(gomock.Any(), balance.ID, newCurrent, balance.Withdrawn).Return(nil).MaxTimes(1)
 
 		orderRepo := mock_application.NewMockOrderRepo(ctrl)
-		orderRepo.EXPECT().WithStatusNew(gomock.Any()).Return(newOrders).AnyTimes()
-		orderRepo.EXPECT().AccrualByID(gomock.Any(), accrual, newStatus, order.ID).Return(nil).AnyTimes()
+		orderRepo.EXPECT().WithStatusNew(gomock.Any()).Return(newOrders).MaxTimes(1)
+		orderRepo.EXPECT().AccrualByID(gomock.Any(), accrual, newStatus, order.ID).Return(nil).MaxTimes(1)
 
 		r := mock_worker.NewMockStatusRequest(ctrl)
 		r.EXPECT().Request(gomock.Any(), order.Number, &res).Do(func(ctx context.Context, number string, res *worker.OrderResponse) {
