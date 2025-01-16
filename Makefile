@@ -35,6 +35,11 @@ server-build:
 .PHONY: server-build
 
 
+server-build-cover:
+	go build -cover -o ./cmd/gophermart/gophermart ./cmd/gophermart/
+.PHONY: server-build-cover
+
+
 accrual:
 	./cmd/accrual/accrual -a=${ACCRUAL_HOST}:${ACCRUAL_PORT}
 .PHONY: accrual
@@ -54,7 +59,15 @@ migrate-create:
 	migrate create -ext sql -dir ./db/migrations $(name)
 .PHONY: migrate-create
 
-test: test-clear
+
+test: server-build-cover
+	go test ./... -cover -coverprofile=coverage.out && \
+	go tool cover -html coverage.out -o test.html && \
+	go tool cover -func=coverage.out
+.PHONY: test
+
+
+integration-test: test-clear
 	gophermarttest \
 		-gophermart-binary-path="./cmd/gophermart/gophermart" \
 		-gophermart-database-uri=${DATABASE_DSN} \
@@ -64,10 +77,10 @@ test: test-clear
 		-accrual-database-uri=${DATABASE_DSN} \
 		-accrual-host=${ACCRUAL_HOST} \
 		-accrual-port=${ACCRUAL_PORT} > ./test_report.txt
-.PHONY: test
+.PHONY: integration-test
 
 test-clear: 
-	rm test_report.txt
+	rm -f coverage.out && rm -f test_report.txt && rm -f test.html
 .PHONY: test-clear
 
 golangci-lint-run: _golangci-lint-rm-unformatted-report

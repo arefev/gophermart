@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"net/http"
@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserRegister(t *testing.T) {
-	t.Run("register", func(t *testing.T) {
+func TestUserAuthSuccess(t *testing.T) {
+	t.Run("authorize success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -49,68 +49,6 @@ func TestUserRegister(t *testing.T) {
 		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
 
 		userRepo := mock_application.NewMockUserRepo(ctrl)
-		userRepo.EXPECT().Exists(gomock.Any(), user.Login).Return(false).MaxTimes(1)
-		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(1)
-		userRepo.EXPECT().Create(gomock.Any(), user.Login, gomock.Any()).Return(nil).MaxTimes(1)
-
-		app := application.App{
-			Rep: application.Repository{
-				User: userRepo,
-			},
-			TrManager: trManager,
-			Log:       zLog,
-			Conf:      &conf,
-		}
-
-		r := router.New(&app)
-		srv := httptest.NewServer(r)
-		defer srv.Close()
-
-		body := `{
-			"login": "` + user.Login + `",
-			"password": "` + pwd + `"
-		}`
-
-		resp, err := resty.New().
-			R().
-			SetHeader("Content-type", "application/json").
-			SetBody(body).
-			Post(srv.URL + "/api/user/register")
-
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
-	})
-}
-
-func TestUserAuth(t *testing.T) {
-	t.Run("authorize", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		conf := config.Config{
-			TokenSecret: gofakeit.DigitN(10),
-			LogLevel:    "debug",
-		}
-
-		zLog, err := logger.Build(conf.LogLevel)
-		require.NoError(t, err)
-
-		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, _ := password.Encrypt(pwd)
-
-		user := model.User{
-			Login:    gofakeit.Username(),
-			Password: pwdHash,
-		}
-
-		tr := mock_trm.NewMockTransaction(ctrl)
-		trManager := trm.NewTrm(tr, zLog)
-		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
-		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
-		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
-
-		userRepo := mock_application.NewMockUserRepo(ctrl)
-		userRepo.EXPECT().Exists(gomock.Any(), user.Login).Return(false).MaxTimes(1)
 		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(1)
 
 		app := application.App{
@@ -139,5 +77,132 @@ func TestUserAuth(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.Contains(t, hAuth, "Bearer ")
+	})
+}
+
+func TestUserAuthStatusUnauth(t *testing.T) {
+	t.Run("authorize status unauthorized", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		conf := config.Config{
+			TokenSecret: gofakeit.DigitN(10),
+			LogLevel:    "debug",
+		}
+
+		zLog, err := logger.Build(conf.LogLevel)
+		require.NoError(t, err)
+
+		pwd := gofakeit.Password(true, true, true, true, false, 10)
+		otherPwd := gofakeit.Password(true, true, true, true, false, 10)
+		pwdHash, _ := password.Encrypt(pwd)
+
+		user := model.User{
+			Login:    gofakeit.Username(),
+			Password: pwdHash,
+		}
+
+		tr := mock_trm.NewMockTransaction(ctrl)
+		trManager := trm.NewTrm(tr, zLog)
+		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
+
+		userRepo := mock_application.NewMockUserRepo(ctrl)
+		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(1)
+
+		app := application.App{
+			Rep: application.Repository{
+				User: userRepo,
+			},
+			TrManager: trManager,
+			Log:       zLog,
+			Conf:      &conf,
+		}
+
+		r := router.New(&app)
+		srv := httptest.NewServer(r)
+		defer srv.Close()
+
+		body := `{
+			"login": "` + user.Login + `",
+			"password": "` + otherPwd + `"
+		}`
+
+		resp, err := resty.New().
+			R().
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/login")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.NotContains(t, hAuth, "Bearer ")
+	})
+}
+
+func TestUserAuthStatusBadRequest(t *testing.T) {
+	t.Run("authorize status bad request", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		conf := config.Config{
+			TokenSecret: gofakeit.DigitN(10),
+			LogLevel:    "debug",
+		}
+
+		zLog, err := logger.Build(conf.LogLevel)
+		require.NoError(t, err)
+
+		pwd := gofakeit.Password(true, true, true, true, false, 10)
+		pwdHash, _ := password.Encrypt(pwd)
+
+		user := model.User{
+			Login:    gofakeit.Username(),
+			Password: pwdHash,
+		}
+
+		tr := mock_trm.NewMockTransaction(ctrl)
+		trManager := trm.NewTrm(tr, zLog)
+		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
+
+		userRepo := mock_application.NewMockUserRepo(ctrl)
+		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(1)
+
+		app := application.App{
+			Rep: application.Repository{
+				User: userRepo,
+			},
+			TrManager: trManager,
+			Log:       zLog,
+			Conf:      &conf,
+		}
+
+		r := router.New(&app)
+		srv := httptest.NewServer(r)
+		defer srv.Close()
+
+		body := `{
+			"login": "` + user.Login + `"
+		}`
+
+		resp, err := resty.New().
+			R().
+			SetHeader("Content-type", "application/json").
+			SetBody(body).
+			Post(srv.URL + "/api/user/login")
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
+
+		hAuth := resp.Header().Get("Authorization")
+		require.NotContains(t, hAuth, "Bearer ")
 	})
 }
