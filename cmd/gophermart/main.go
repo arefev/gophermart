@@ -119,10 +119,7 @@ func migrationsUp(dsn string) error {
 	}
 
 	filePath := filepath.Dir(ex)
-	fmt.Printf("file %+v\n", filePath+"/db/migrations")
-
 	m, err := migrate.New("file://"+filePath+"/db/migrations", dsn)
-
 	if err != nil {
 		return fmt.Errorf("migrations instance fail: %w", err)
 	}
