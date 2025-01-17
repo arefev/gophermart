@@ -26,7 +26,7 @@ server-run: server-build
 		-a="${SERVER_ADDRESS}:${SERVER_PORT}" \
 		-l="${LOG_LEVEL}" \
 		-s="${TOKEN_SECRET}" \
-		-c="${ACCRUAL_HOST}:${ACCRUAL_PORT}"
+		-r="${ACCRUAL_HOST}:${ACCRUAL_PORT}"
 .PHONY: server-run
 
 
@@ -69,11 +69,13 @@ test: server-build-cover
 
 integration-test: test-clear
 	gophermarttest \
+		-test.v \
+		-test.run=^TestGophermart$$ \
 		-gophermart-binary-path="./cmd/gophermart/gophermart" \
 		-gophermart-database-uri=${DATABASE_DSN} \
 		-gophermart-host=${SERVER_ADDRESS} \
 		-gophermart-port=${SERVER_PORT} \
-		-accrual-binary-path="./cmd/accrual/accrual" \
+		-accrual-binary-path="./cmd/accrual/accrual_linux_amd64" \
 		-accrual-database-uri=${DATABASE_DSN} \
 		-accrual-host=${ACCRUAL_HOST} \
 		-accrual-port=${ACCRUAL_PORT} > ./test_report.txt

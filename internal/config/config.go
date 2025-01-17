@@ -11,7 +11,7 @@ const (
 	address        string = "localhost:8081"
 	logLevel       string = "info"
 	databaseDSN    string = ""
-	tokenSecret    string = ""
+	tokenSecret    string = "123"
 	accrualAddress string = "localhost:8082"
 	tokenDuration  int    = 60
 	pollInterval   int    = 2
@@ -47,7 +47,7 @@ func (cnf *Config) initFlags(params []string) error {
 	f.StringVar(&cnf.LogLevel, "l", logLevel, "log level")
 	f.StringVar(&cnf.DatabaseDSN, "d", databaseDSN, "db connection string")
 	f.StringVar(&cnf.TokenSecret, "s", tokenSecret, "token secret")
-	f.StringVar(&cnf.AccrualAddress, "c", accrualAddress, "address and port accrual service")
+	f.StringVar(&cnf.AccrualAddress, "r", accrualAddress, "address and port accrual service")
 	f.IntVar(&cnf.TokenDuration, "t", tokenDuration, "token lifetime duration in minutes")
 	f.IntVar(&cnf.PollInterval, "i", pollInterval, "status poll interval in seconds")
 	if err := f.Parse(params); err != nil {
