@@ -67,7 +67,7 @@ func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
 	})
 
 	if err != nil {
-		w.app.Log.Error("getNewOrders transaction fail: %w", zap.Error(err))
+		w.app.Log.Error("getNewOrders transaction fail", zap.Error(err))
 		return nil
 	}
 

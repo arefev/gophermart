@@ -20,7 +20,7 @@ func NewRequest(accrualAddress string) *request {
 
 func (r *request) Request(ctx context.Context, number string, res *OrderResponse) (time.Duration, error) {
 	const waitTime = time.Duration(60) * time.Second
-	url := "http://" + r.accrualAddress + "/api/orders/" + number
+	url := r.accrualAddress + "/api/orders/" + number
 
 	client := resty.New()
 	response, err := client.R().
