@@ -26,7 +26,7 @@ func (r *request) Request(ctx context.Context, number string, res *OrderResponse
 	response, err := client.R().
 		SetResult(res).
 		SetContext(ctx).
-		Get(r.getUrl(number))
+		Get(r.getURL(number))
 
 	if err != nil {
 		return 0, fmt.Errorf("request fail: %w", err)
@@ -49,7 +49,7 @@ func (r *request) Request(ctx context.Context, number string, res *OrderResponse
 	return wait, nil
 }
 
-func (r *request) getUrl(number string) string {
+func (r *request) getURL(number string) string {
 	url := r.accrualAddress + "/api/orders/" + number
 	if !strings.Contains(r.accrualAddress, "http://") {
 		url = "http://" + url
