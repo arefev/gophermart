@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/arefev/gophermart/internal/application"
@@ -22,8 +23,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	// "github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -114,7 +113,16 @@ func run() error {
 }
 
 func migrationsUp(dsn string) error {
-	m, err := migrate.New("file://db/migrations", dsn)
+	ex, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("get executable path fail: %w", err)
+	}
+
+	filePath := filepath.Dir(ex)
+	fmt.Printf("file %+v\n", filePath+"/db/migrations")
+
+	m, err := migrate.New("file://"+filePath+"/db/migrations", dsn)
+
 	if err != nil {
 		return fmt.Errorf("migrations instance fail: %w", err)
 	}
