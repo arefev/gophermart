@@ -56,10 +56,10 @@ func (w *worker) Run(ctx context.Context) error {
 }
 
 func (w *worker) Handle(ctx context.Context) {
-	w.checkOrders(ctx, *w.getNewOrders(ctx))
+	w.checkOrders(ctx, w.getNewOrders(ctx))
 }
 
-func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
+func (w *worker) getNewOrders(ctx context.Context) []model.Order {
 	var orders []model.Order
 	err := w.app.TrManager.Do(ctx, func(ctx context.Context) error {
 		orders = w.app.Rep.Order.WithStatusNew(ctx)
@@ -71,7 +71,7 @@ func (w *worker) getNewOrders(ctx context.Context) *[]model.Order {
 		return nil
 	}
 
-	return &orders
+	return orders
 }
 
 func (w *worker) checkOrders(ctx context.Context, orders []model.Order) {
