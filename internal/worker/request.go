@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/arefev/gophermart/internal/model"
@@ -20,13 +21,12 @@ func NewRequest(accrualAddress string) *request {
 
 func (r *request) Request(ctx context.Context, number string, res *OrderResponse) (time.Duration, error) {
 	const waitTime = time.Duration(60) * time.Second
-	url := r.accrualAddress + "/api/orders/" + number
 
 	client := resty.New()
 	response, err := client.R().
 		SetResult(res).
 		SetContext(ctx).
-		Get(url)
+		Get(r.getUrl(number))
 
 	if err != nil {
 		return 0, fmt.Errorf("request fail: %w", err)
@@ -47,4 +47,13 @@ func (r *request) Request(ctx context.Context, number string, res *OrderResponse
 	}
 
 	return wait, nil
+}
+
+func (r *request) getUrl(number string) string {
+	url := r.accrualAddress + "/api/orders/" + number
+	if !strings.Contains(r.accrualAddress, "http://") {
+		url = "http://" + url
+	}
+
+	return url
 }
