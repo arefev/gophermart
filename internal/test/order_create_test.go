@@ -22,85 +22,114 @@ import (
 )
 
 func TestOrderCreateSuccess(t *testing.T) {
-	t.Run("order create success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
+	type want struct {
+		conf   config.Config
+		status int
+	}
 
-		conf := config.Config{
-			TokenSecret:   gofakeit.DigitN(10),
-			LogLevel:      "debug",
-			TokenDuration: 5,
-		}
-
-		zLog, err := logger.Build(conf.LogLevel)
-		require.NoError(t, err)
-
-		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, err := password.Encrypt(pwd)
-		require.NoError(t, err)
-
-		user := model.User{
-			ID:       1,
-			Login:    gofakeit.Username(),
-			Password: pwdHash,
-		}
-
-		orderNumber := "45031620082273"
-
-		tr := mock_trm.NewMockTransaction(ctrl)
-		trManager := trm.NewTrm(tr, zLog)
-		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
-		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
-		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
-
-		userRepo := mock_application.NewMockUserRepo(ctrl)
-		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
-
-		orderRepo := mock_application.NewMockOrderRepo(ctrl)
-		orderRepo.EXPECT().FindByNumber(gomock.Any(), orderNumber).Return(nil, false).MaxTimes(1)
-		orderRepo.EXPECT().Create(gomock.Any(), user.ID, model.OrderStatusNew, orderNumber).Return(nil).MaxTimes(1)
-
-		app := application.App{
-			Rep: application.Repository{
-				User:  userRepo,
-				Order: orderRepo,
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "test order create success",
+			want: want{
+				conf: config.Config{
+					TokenSecret:   gofakeit.DigitN(10),
+					LogLevel:      "debug",
+					TokenDuration: 5,
+				},
+				status: http.StatusAccepted,
 			},
-			TrManager: trManager,
-			Log:       zLog,
-			Conf:      &conf,
-		}
+		},
+		{
+			name: "test order create token expired",
+			want: want{
+				conf: config.Config{
+					TokenSecret:   gofakeit.DigitN(10),
+					LogLevel:      "debug",
+					TokenDuration: 0,
+				},
+				status: http.StatusUnauthorized,
+			},
+		},
+	}
 
-		r := router.New(&app)
-		srv := httptest.NewServer(r)
-		defer srv.Close()
+	for _, tt := range tests {
+		t.Run("order create success", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-		body := `{
-			"login": "` + user.Login + `",
-			"password": "` + pwd + `"
-		}`
+			zLog, err := logger.Build(tt.want.conf.LogLevel)
+			require.NoError(t, err)
 
-		resp, err := resty.New().
-			R().
-			SetHeader("Content-type", "application/json").
-			SetBody(body).
-			Post(srv.URL + "/api/user/login")
+			pwd := gofakeit.Password(true, true, true, true, false, 10)
+			pwdHash, err := password.Encrypt(pwd)
+			require.NoError(t, err)
 
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
+			user := model.User{
+				ID:       1,
+				Login:    gofakeit.Username(),
+				Password: pwdHash,
+			}
 
-		hAuth := resp.Header().Get("Authorization")
-		require.Contains(t, hAuth, "Bearer ")
+			orderNumber := "45031620082273"
 
-		resp, err = resty.New().
-			R().
-			SetHeader("Content-type", "text/plain").
-			SetHeader("Authorization", hAuth).
-			SetBody(orderNumber).
-			Post(srv.URL + "/api/user/orders")
+			tr := mock_trm.NewMockTransaction(ctrl)
+			trManager := trm.NewTrm(tr, zLog)
+			tr.EXPECT().Begin(gomock.Any()).AnyTimes()
+			tr.EXPECT().Commit(gomock.Any()).AnyTimes()
+			tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
 
-		require.NoError(t, err)
-		require.Equal(t, http.StatusAccepted, resp.StatusCode())
-	})
+			userRepo := mock_application.NewMockUserRepo(ctrl)
+			userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
+
+			orderRepo := mock_application.NewMockOrderRepo(ctrl)
+			orderRepo.EXPECT().FindByNumber(gomock.Any(), orderNumber).Return(nil, false).MaxTimes(1)
+			orderRepo.EXPECT().Create(gomock.Any(), user.ID, model.OrderStatusNew, orderNumber).Return(nil).MaxTimes(1)
+
+			app := application.App{
+				Rep: application.Repository{
+					User:  userRepo,
+					Order: orderRepo,
+				},
+				TrManager: trManager,
+				Log:       zLog,
+				Conf:      &tt.want.conf,
+			}
+
+			r := router.New(&app)
+			srv := httptest.NewServer(r)
+			defer srv.Close()
+
+			body := `{
+				"login": "` + user.Login + `",
+				"password": "` + pwd + `"
+			}`
+
+			resp, err := resty.New().
+				R().
+				SetHeader("Content-type", "application/json").
+				SetBody(body).
+				Post(srv.URL + "/api/user/login")
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+
+			hAuth := resp.Header().Get("Authorization")
+			require.Contains(t, hAuth, "Bearer ")
+
+			resp, err = resty.New().
+				R().
+				SetHeader("Content-type", "text/plain").
+				SetHeader("Authorization", hAuth).
+				SetBody(orderNumber).
+				Post(srv.URL + "/api/user/orders")
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want.status, resp.StatusCode())
+		})
+	}
 }
 
 func TestOrderCreateStatusUnprocessable(t *testing.T) {
@@ -216,90 +245,8 @@ func TestOrderCreateStatusUnauthorized(t *testing.T) {
 	})
 }
 
-func TestOrderCreateTokenExpired(t *testing.T) {
-	t.Run("order create token expired", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		conf := config.Config{
-			TokenSecret:   gofakeit.DigitN(10),
-			LogLevel:      "debug",
-			TokenDuration: 0,
-		}
-
-		zLog, err := logger.Build(conf.LogLevel)
-		require.NoError(t, err)
-
-		pwd := gofakeit.Password(true, true, true, true, false, 10)
-		pwdHash, err := password.Encrypt(pwd)
-		require.NoError(t, err)
-
-		user := model.User{
-			ID:       1,
-			Login:    gofakeit.Username(),
-			Password: pwdHash,
-		}
-
-		orderNumber := "45031620082273"
-
-		tr := mock_trm.NewMockTransaction(ctrl)
-		trManager := trm.NewTrm(tr, zLog)
-		tr.EXPECT().Begin(gomock.Any()).AnyTimes()
-		tr.EXPECT().Commit(gomock.Any()).AnyTimes()
-		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
-
-		userRepo := mock_application.NewMockUserRepo(ctrl)
-		userRepo.EXPECT().FindByLogin(gomock.Any(), user.Login).Return(&user, true).MaxTimes(2)
-
-		orderRepo := mock_application.NewMockOrderRepo(ctrl)
-		orderRepo.EXPECT().FindByNumber(gomock.Any(), orderNumber).Return(nil, false).MaxTimes(1)
-		orderRepo.EXPECT().Create(gomock.Any(), user.ID, model.OrderStatusNew, orderNumber).Return(nil).MaxTimes(1)
-
-		app := application.App{
-			Rep: application.Repository{
-				User:  userRepo,
-				Order: orderRepo,
-			},
-			TrManager: trManager,
-			Log:       zLog,
-			Conf:      &conf,
-		}
-
-		r := router.New(&app)
-		srv := httptest.NewServer(r)
-		defer srv.Close()
-
-		body := `{
-			"login": "` + user.Login + `",
-			"password": "` + pwd + `"
-		}`
-
-		resp, err := resty.New().
-			R().
-			SetHeader("Content-type", "application/json").
-			SetBody(body).
-			Post(srv.URL + "/api/user/login")
-
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
-
-		hAuth := resp.Header().Get("Authorization")
-		require.Contains(t, hAuth, "Bearer ")
-
-		resp, err = resty.New().
-			R().
-			SetHeader("Content-type", "text/plain").
-			SetHeader("Authorization", hAuth).
-			SetBody(orderNumber).
-			Post(srv.URL + "/api/user/orders")
-
-		require.NoError(t, err)
-		require.Equal(t, http.StatusUnauthorized, resp.StatusCode())
-	})
-}
-
 func TestOrderCreateBadAuthHeader(t *testing.T) {
-	t.Run("order create token expired", func(t *testing.T) {
+	t.Run("order create bad auth header", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
