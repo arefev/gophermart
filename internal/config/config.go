@@ -19,10 +19,10 @@ const (
 
 type Config struct {
 	TokenSecret    string `env:"TOKEN_SECRET"`
-	Address        string `env:"ADDRESS"`
+	Address        string `env:"RUN_ADDRESS"`
 	LogLevel       string `env:"LOG_LEVEL"`
-	DatabaseDSN    string `env:"DATABASE_DSN"`
-	AccrualAddress string `env:"ACCRUAL_ADDRESS"`
+	DatabaseDSN    string `env:"DATABASE_URI"`
+	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	TokenDuration  int    `env:"TOKEN_DURATION"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 }
