@@ -46,17 +46,17 @@ accrual:
 
 
 migrate-up:
-	migrate -path ./db/migrations -database ${DATABASE_DSN} up
+	migrate -path ./cmd/gophermart/db/migrations -database ${DATABASE_DSN} up
 .PHONY: migrate-up
 
 
 migrate-down:
-	migrate -path ./db/migrations -database ${DATABASE_DSN} down
+	migrate -path ./cmd/gophermart/db/migrations -database ${DATABASE_DSN} down
 .PHONY: migrate-down
 
 
 migrate-create:
-	migrate create -ext sql -dir ./db/migrations $(name)
+	migrate create -ext sql -dir ./cmd/gophermart/db/migrations $(name)
 .PHONY: migrate-create
 
 

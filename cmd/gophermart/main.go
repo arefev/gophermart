@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -18,6 +19,11 @@ import (
 	"github.com/arefev/gophermart/internal/router"
 	"github.com/arefev/gophermart/internal/trm"
 	"github.com/arefev/gophermart/internal/worker"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	// "github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -45,6 +51,11 @@ func run() error {
 	db, err := postgresql.NewDB(zLog).Connect(conf.DatabaseDSN)
 	if err != nil {
 		return fmt.Errorf("run: db trm connect fail: %w", err)
+	}
+
+	err = migrationsUp(conf.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("run: migration up fail: %w", err)
 	}
 
 	defer func() {
@@ -97,6 +108,20 @@ func run() error {
 
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("exit reason: %w", err)
+	}
+
+	return nil
+}
+
+func migrationsUp(dsn string) error {
+	m, err := migrate.New("file://db/migrations", dsn)
+	if err != nil {
+		return fmt.Errorf("migrations instance fail: %w", err)
+	}
+
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("migrations up fail: %w", err)
 	}
 
 	return nil
