@@ -29,16 +29,11 @@ func NewBase(tr TxGetter, log *zap.Logger) *Base {
 	}
 }
 
-func (b *Base) findWithArgs(
-	ctx context.Context,
-	args map[string]any,
-	query string,
-	entity any,
-) (bool, error) {
+func (b *Base) findWithArgs(ctx context.Context, args map[string]any, q string, entity any) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := b.prepare(ctx, query)
+	stmt, err := b.prepare(ctx, q)
 	if err != nil {
 		return false, fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
@@ -60,15 +55,11 @@ func (b *Base) findWithArgs(
 	return true, nil
 }
 
-func (b *Base) execWithArgs(
-	ctx context.Context,
-	args map[string]any,
-	query string,
-) error {
+func (b *Base) execWithArgs(ctx context.Context, args map[string]any, q string) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := b.prepare(ctx, query)
+	stmt, err := b.prepare(ctx, q)
 	if err != nil {
 		return fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
@@ -87,16 +78,11 @@ func (b *Base) execWithArgs(
 	return nil
 }
 
-func (b *Base) getWithArgs(
-	ctx context.Context,
-	args map[string]any,
-	query string,
-	list interface{},
-) error {
+func (b *Base) getWithArgs(ctx context.Context, args map[string]any, q string, list any) error {
 	ctx, cancel := context.WithTimeout(ctx, timeCancel)
 	defer cancel()
 
-	stmt, err := b.prepare(ctx, query)
+	stmt, err := b.prepare(ctx, q)
 	if err != nil {
 		return fmt.Errorf("exec with args: prepare fail: %w", err)
 	}
@@ -116,13 +102,13 @@ func (b *Base) getWithArgs(
 	return nil
 }
 
-func (b *Base) prepare(ctx context.Context, query string) (*sqlx.NamedStmt, error) {
+func (b *Base) prepare(ctx context.Context, q string) (*sqlx.NamedStmt, error) {
 	tr, err := b.tr.FromCtx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("prepare from ctx fail: %w", err)
 	}
 
-	stmt, err := tr.PrepareNamedContext(ctx, query)
+	stmt, err := tr.PrepareNamedContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("prepare named context fail: %w", err)
 	}
