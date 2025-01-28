@@ -15,6 +15,7 @@ const (
 	accrualAddress string = "localhost:8082"
 	tokenDuration  int    = 60
 	pollInterval   int    = 2
+	rateLimit      int    = 10
 )
 
 type Config struct {
@@ -25,6 +26,7 @@ type Config struct {
 	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	TokenDuration  int    `env:"TOKEN_DURATION"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func NewConfig(params []string) (Config, error) {
@@ -50,6 +52,7 @@ func (cnf *Config) initFlags(params []string) error {
 	f.StringVar(&cnf.AccrualAddress, "r", accrualAddress, "address and port accrual service")
 	f.IntVar(&cnf.TokenDuration, "t", tokenDuration, "token lifetime duration in minutes")
 	f.IntVar(&cnf.PollInterval, "i", pollInterval, "status poll interval in seconds")
+	f.IntVar(&cnf.RateLimit, "rate-limit", rateLimit, "rate limit in seconds")
 	if err := f.Parse(params); err != nil {
 		return fmt.Errorf("InitFlags: parse flags fail: %w", err)
 	}

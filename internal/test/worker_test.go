@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 
 func TestWorkerSuccess(t *testing.T) {
 	t.Run("worker success", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 		defer cancel()
 
 		ctrl := gomock.NewController(t)
@@ -32,6 +33,7 @@ func TestWorkerSuccess(t *testing.T) {
 			TokenSecret:  gofakeit.DigitN(10),
 			PollInterval: 2,
 			LogLevel:     "debug",
+			RateLimit:    10,
 		}
 
 		zLog, err := logger.Build(conf.LogLevel)
@@ -70,12 +72,12 @@ func TestWorkerSuccess(t *testing.T) {
 		tr.EXPECT().Rollback(gomock.Any()).AnyTimes()
 
 		balanceRepo := mock_application.NewMockBalanceRepo(ctrl)
-		balanceRepo.EXPECT().FindByUserID(gomock.Any(), user.ID).Return(&balance, true).AnyTimes()
-		balanceRepo.EXPECT().UpdateByID(gomock.Any(), balance.ID, newCurrent, balance.Withdrawn).Return(nil).AnyTimes()
+		balanceRepo.EXPECT().FindByUserID(gomock.Any(), user.ID).Return(&balance, true).MinTimes(1)
+		balanceRepo.EXPECT().UpdateByID(gomock.Any(), balance.ID, newCurrent, balance.Withdrawn).Return(nil).MinTimes(1)
 
 		orderRepo := mock_application.NewMockOrderRepo(ctrl)
-		orderRepo.EXPECT().WithStatusNew(gomock.Any()).Return(newOrders).AnyTimes()
-		orderRepo.EXPECT().AccrualByID(gomock.Any(), accrual, newStatus, order.ID).Return(nil).AnyTimes()
+		orderRepo.EXPECT().WithStatusNew(gomock.Any()).Return(newOrders).MinTimes(1)
+		orderRepo.EXPECT().AccrualByID(gomock.Any(), accrual, newStatus, order.ID).Return(nil).MinTimes(1)
 
 		r := mock_worker.NewMockStatusRequest(ctrl)
 		r.EXPECT().Request(gomock.Any(), order.Number, &res).
@@ -102,7 +104,8 @@ func TestWorkerSuccess(t *testing.T) {
 
 func TestWorkerWait(t *testing.T) {
 	t.Run("worker wait", func(t *testing.T) {
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -111,6 +114,7 @@ func TestWorkerWait(t *testing.T) {
 			TokenSecret:  gofakeit.DigitN(10),
 			PollInterval: 2,
 			LogLevel:     "debug",
+			RateLimit:    10,
 		}
 
 		zLog, err := logger.Build(conf.LogLevel)
@@ -161,8 +165,9 @@ func TestWorkerWait(t *testing.T) {
 			Do(func(ctx context.Context, number string, res *worker.OrderResponse) {
 				res.Status = newStatus.String()
 				res.Accrual = accrual
+				res.HTTPStatus = http.StatusTooManyRequests
 			}).
-			Return(1*time.Second, nil).
+			Return(nil).
 			AnyTimes()
 
 		app := application.App{
@@ -175,6 +180,7 @@ func TestWorkerWait(t *testing.T) {
 			Conf:      &conf,
 		}
 
-		worker.NewWorker(&app, r).Handle(ctx)
+		err = worker.NewWorker(&app, r).Run(ctx)
+		require.Error(t, err)
 	})
 }

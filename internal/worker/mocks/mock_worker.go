@@ -7,7 +7,6 @@ package mock_worker
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	worker "github.com/arefev/gophermart/internal/worker"
 	gomock "github.com/golang/mock/gomock"
@@ -37,12 +36,11 @@ func (m *MockStatusRequest) EXPECT() *MockStatusRequestMockRecorder {
 }
 
 // Request mocks base method.
-func (m *MockStatusRequest) Request(ctx context.Context, number string, res *worker.OrderResponse) (time.Duration, error) {
+func (m *MockStatusRequest) Request(ctx context.Context, number string, res *worker.OrderResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Request", ctx, number, res)
-	ret0, _ := ret[0].(time.Duration)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Request indicates an expected call of Request.
